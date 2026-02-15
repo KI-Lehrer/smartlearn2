@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartLearn – Wireframes</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #f5f3ee;
+    --wire-bg: #ffffff;
+    --wire-stroke: #c8c4bc;
+    --wire-fill: #e8e5de;
+    --wire-fill-light: #f0ede7;
+    --wire-accent: #3d7cf5;
+    --wire-accent-light: #e8f0ff;
+    --wire-green: #34a853;
+    --wire-green-light: #e6f4ea;
+    --wire-orange: #ea8c3c;
+    --wire-orange-light: #fef3e5;
+    --wire-red: #e8453c;
+    --wire-red-light: #fde8e7;
+    --wire-purple: #8e5cd6;
+    --wire-purple-light: #f1ebfa;
+    --wire-text: #2c2a25;
+    --wire-text-muted: #8a867d;
+    --annotation: #e8453c;
+    --annotation-bg: #fff5f4;
+    --radius: 10px;
+    --radius-sm: 6px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--wire-text);
+    min-height: 100vh;
+  }
+
+  /* === NAV HEADER === */
+  .top-nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(245, 243, 238, 0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--wire-stroke);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .top-nav-title {
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+  }
+
+  .top-nav-title span { color: var(--wire-accent); }
+
+  .screen-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--wire-fill);
+    border-radius: 8px;
+    padding: 3px;
+    overflow-x: auto;
+  }
+
+  .screen-tab {
+    padding: 7px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    border: none;
+    background: transparent;
+    color: var(--wire-text-muted);
+    font-family: inherit;
+  }
+
+  .screen-tab:hover { color: var(--wire-text); background: rgba(255,255,255,0.5); }
+  .screen-tab.active { background: white; color: var(--wire-text); box-shadow: var(--shadow); }
+
+  .device-toggle {
+    display: flex;
+    gap: 4px;
+    background: var(--wire-fill);
+    border-radius: 8px;
+    padding: 3px;
+    flex-shrink: 0;
+  }
+
+  .device-btn {
+    padding: 6px 12px;
+    font-size: 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    transition: all 0.2s ease;
+    line-height: 1;
+  }
+
+  .device-btn:hover { background: rgba(255,255,255,0.5); }
+  .device-btn.active { background: white; box-shadow: var(--shadow); }
+
+  /* === WIREFRAME CANVAS === */
+  .canvas {
+    padding: 32px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .screen-info {
+    margin-bottom: 24px;
+  }
+
+  .screen-info h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-bottom: 4px;
+  }
+
+  .screen-info p {
+    color: var(--wire-text-muted);
+    font-size: 14px;
+  }
+
+  /* Wireframe container */
+  .wire-wrapper {
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+  }
+
+  .wire-wrapper.single { justify-content: center; }
+
+  .wire-device {
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .wire-device-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--wire-text-muted);
+    text-align: center;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .wire-frame {
+    background: var(--wire-bg);
+    border: 2px solid var(--wire-stroke);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+  }
+
+  .wire-frame.desktop { width: 780px; }
+  .wire-frame.mobile { width: 375px; }
+
+  /* Hide based on device toggle */
+  body.show-desktop .wire-device.mobile-only { display: none; }
+  body.show-mobile .wire-device.desktop-only { display: none; }
+  body.show-desktop .wire-wrapper { justify-content: center; }
+  body.show-mobile .wire-wrapper { justify-content: center; }
+
+  /* === WIREFRAME COMPONENTS === */
+
+  /* App Bar */
+  .w-appbar {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--wire-bg);
+    border-bottom: 1.5px solid var(--wire-stroke);
+    gap: 12px;
+  }
+
+  .w-appbar-logo {
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--wire-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .w-appbar-title { font-weight: 600; font-size: 15px; }
+  .w-appbar-spacer { flex: 1; }
+
+  .w-appbar-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--wire-fill);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .w-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--wire-accent-light);
+    border: 2px solid var(--wire-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--wire-accent);
+  }
+
+  /* Sidebar */
+  .w-layout { display: flex; min-height: 500px; }
+  .w-layout.mobile-layout { flex-direction: column; min-height: 700px; }
+
+  .w-sidebar {
+    width: 200px;
+    background: var(--wire-fill-light);
+    border-right: 1.5px solid var(--wire-stroke);
+    padding: 12px 0;
+    flex-shrink: 0;
+  }
+
+  .w-sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    font-size: 13px;
+    color: var(--wire-text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .w-sidebar-item:hover { background: var(--wire-fill); color: var(--wire-text); }
+  .w-sidebar-item.active { background: var(--wire-accent-light); color: var(--wire-accent); font-weight: 600; }
+  .w-sidebar-item .ico { font-size: 15px; width: 20px; text-align: center; }
+
+  .w-sidebar-divider {
+    height: 1px;
+    background: var(--wire-stroke);
+    margin: 8px 16px;
+  }
+
+  .w-sidebar-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--wire-text-muted);
+    padding: 8px 16px 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  /* Main content */
+  .w-main { flex: 1; padding: 20px; overflow: hidden; }
+  .w-main.mobile-main { padding: 16px; }
+
+  .w-page-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    margin-bottom: 4px;
+  }
+
+  .w-page-subtitle {
+    font-size: 13px;
+    color: var(--wire-text-muted);
+    margin-bottom: 20px;
+  }
+
+  /* Cards */
+  .w-card {
+    background: var(--wire-bg);
+    border: 1.5px solid var(--wire-stroke);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+
+  .w-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .w-card-title {
+    font-weight: 600;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .w-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+
+  .w-badge.green { background: var(--wire-green-light); color: var(--wire-green); }
+  .w-badge.orange { background: var(--wire-orange-light); color: var(--wire-orange); }
+  .w-badge.red { background: var(--wire-red-light); color: var(--wire-red); }
+  .w-badge.blue { background: var(--wire-accent-light); color: var(--wire-accent); }
+  .w-badge.purple { background: var(--wire-purple-light); color: var(--wire-purple); }
+
+  /* Stats Row */
+  .w-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .w-stats.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .w-stats.cols-2 { grid-template-columns: repeat(2, 1fr); }
+
+  .w-stat {
+    background: var(--wire-bg);
+    border: 1.5px solid var(--wire-stroke);
+    border-radius: var(--radius-sm);
+    padding: 14px;
+    text-align: center;
+  }
+
+  .w-stat-value { font-size: 24px; font-weight: 700; letter-spacing: -1px; }
+  .w-stat-label { font-size: 11px; color: var(--wire-text-muted); margin-top: 2px; }
+
+  /* Table */
+  .w-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .w-table th {
+    text-align: left;
+    padding: 8px 10px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--wire-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1.5px solid var(--wire-stroke);
+    font-weight: 500;
+  }
+
+  .w-table td {
+    padding: 10px;
+    border-bottom: 1px solid var(--wire-fill);
+    vertical-align: middle;
+  }
+
+  .w-table tr:last-child td { border-bottom: none; }
+
+  /* Progress bar */
+  .w-progress {
+    height: 6px;
+    background: var(--wire-fill);
+    border-radius: 3px;
+    overflow: hidden;
+    width: 80px;
+  }
+
+  .w-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--wire-accent);
+  }
+
+  /* Course tiles */
+  .w-courses {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .w-course-tile {
+    border: 1.5px solid var(--wire-stroke);
+    border-radius: var(--radius);
+    padding: 14px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-top: 4px solid var(--wire-stroke);
+  }
+
+  .w-course-tile:hover { box-shadow: var(--shadow); transform: translateY(-1px); }
+  .w-course-tile.c1 { border-top-color: var(--wire-accent); }
+  .w-course-tile.c2 { border-top-color: var(--wire-green); }
+  .w-course-tile.c3 { border-top-color: var(--wire-orange); }
+  .w-course-tile.c4 { border-top-color: var(--wire-purple); }
+
+  .w-course-tile .tile-icon { font-size: 24px; margin-bottom: 6px; }
+  .w-course-tile .tile-name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+  .w-course-tile .tile-meta { font-size: 11px; color: var(--wire-text-muted); }
+
+  /* Topic rows */
+  .w-topic {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--wire-stroke);
+    border-radius: var(--radius-sm);
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .w-topic:hover { background: var(--wire-fill-light); }
+
+  .w-topic-color {
+    width: 6px;
+    height: 32px;
+    border-radius: 3px;
+    flex-shrink: 0;
+  }
+
+  .w-topic-info { flex: 1; }
+  .w-topic-name { font-weight: 600; font-size: 13px; }
+  .w-topic-meta { font-size: 11px; color: var(--wire-text-muted); }
+
+  /* Task tiles */
+  .w-tasks-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 8px;
+  }
+
+  .w-task-tile {
+    border: 1.5px solid var(--wire-stroke);
+    border-radius: var(--radius-sm);
+    padding: 12px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    position: relative;
+  }
+
+  .w-task-tile:hover { background: var(--wire-fill-light); box-shadow: var(--shadow); }
+
+  .w-task-tile .task-icon { font-size: 22px; margin-bottom: 4px; }
+  .w-task-tile .task-name { font-size: 11px; font-weight: 500; line-height: 1.3; }
+
+  .w-task-tile .task-check {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 12px;
+  }
+
+  .w-task-tile.done { background: var(--wire-green-light); border-color: rgba(52, 168, 83, 0.3); }
+
+  /* Button */
+  .w-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+
+  .w-btn.primary { background: var(--wire-accent); color: white; }
+  .w-btn.primary:hover { filter: brightness(1.1); }
+  .w-btn.secondary { background: var(--wire-fill); color: var(--wire-text); border: 1.5px solid var(--wire-stroke); }
+  .w-btn.ai { background: var(--wire-orange); color: white; }
+
+  /* Form elements */
+  .w-form-group { margin-bottom: 16px; }
+
+  .w-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--wire-text-muted);
+  }
+
+  .w-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--wire-stroke);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--wire-bg);
+    outline: none;
+  }
+
+  .w-input:focus { border-color: var(--wire-accent); }
+
+  .w-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1.5px solid var(--wire-stroke);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-family: inherit;
+    background: var(--wire-bg);
+    min-height: 80px;
+    resize: vertical;
+    outline: none;
+  }
+
+  .w-select-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+
+  .w-select-option {
+    border: 1.5px solid var(--wire-stroke);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .w-select-option:hover { border-color: var(--wire-accent); }
+  .w-select-option.selected { border-color: var(--wire-accent); background: var(--wire-accent-light); }
+
+  .w-select-option .opt-icon { font-size: 20px; margin-bottom: 4px; }
+  .w-select-option .opt-label { font-size: 12px; font-weight: 500; }
+
+  /* Annotation callouts */
+  .w-annotation {
+    position: absolute;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--annotation);
+    background: var(--annotation-bg);
+    border: 1px dashed var(--annotation);
+    border-radius: 4px;
+    padding: 3px 8px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  /* Mobile bottom nav */
+  .w-bottomnav {
+    display: flex;
+    border-top: 1.5px solid var(--wire-stroke);
+    background: var(--wire-bg);
+  }
+
+  .w-bottomnav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 4px;
+    font-size: 10px;
+    color: var(--wire-text-muted);
+    cursor: pointer;
+  }
+
+  .w-bottomnav-item.active { color: var(--wire-accent); }
+  .w-bottomnav-item .bnav-icon { font-size: 18px; }
+
+  /* KI banner */
+  .w-ai-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--wire-orange-light);
+    border: 1.5px solid rgba(234, 140, 60, 0.3);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+  }
+
+  .w-ai-banner .ai-icon { font-size: 20px; flex-shrink: 0; }
+  .w-ai-banner .ai-text { font-size: 12px; color: var(--wire-text); line-height: 1.4; }
+  .w-ai-banner .ai-text strong { color: var(--wire-orange); }
+
+  /* Upload zone */
+  .w-upload {
+    border: 2px dashed var(--wire-stroke);
+    border-radius: var(--radius);
+    padding: 32px 16px;
+    text-align: center;
+    color: var(--wire-text-muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .w-upload:hover { border-color: var(--wire-accent); background: var(--wire-accent-light); }
+  .w-upload .upload-icon { font-size: 28px; margin-bottom: 6px; }
+
+  /* MC options */
+  .w-mc-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border: 1.5px solid var(--wire-stroke);
+    border-radius: var(--radius-sm);
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-size: 13px;
+  }
+
+  .w-mc-option:hover { border-color: var(--wire-accent); }
+
+  .w-mc-radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 2px solid var(--wire-stroke);
+    flex-shrink: 0;
+  }
+
+  .w-mc-option.selected { background: var(--wire-accent-light); border-color: var(--wire-accent); }
+  .w-mc-option.selected .w-mc-radio { border-color: var(--wire-accent); background: var(--wire-accent); }
+
+  /* Feedback box */
+  .w-feedback {
+    padding: 14px;
+    border-radius: var(--radius);
+    margin-top: 16px;
+  }
+
+  .w-feedback.ai-feedback {
+    background: var(--wire-orange-light);
+    border: 1.5px solid rgba(234, 140, 60, 0.3);
+  }
+
+  .w-feedback-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+
+  .w-feedback-text {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--wire-text-muted);
+  }
+
+  /* Skeleton lines */
+  .w-skeleton {
+    height: 10px;
+    background: var(--wire-fill);
+    border-radius: 5px;
+    margin-bottom: 6px;
+  }
+
+  .w-skeleton.w60 { width: 60%; }
+  .w-skeleton.w80 { width: 80%; }
+  .w-skeleton.w40 { width: 40%; }
+
+  /* Responsive for actual viewport */
+  @media (max-width: 900px) {
+    .wire-frame.desktop { width: 100%; }
+    .wire-wrapper { flex-direction: column; align-items: center; }
+    .top-nav { flex-wrap: wrap; gap: 8px; }
+    .screen-tabs { order: 3; width: 100%; justify-content: flex-start; }
+  }
+</style>
+</head>
+<body class="show-both">
+
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <div class="top-nav-title">📐 Smart<span>Learn</span> Wireframes</div>
+  <div class="screen-tabs" id="screenTabs">
+    <button class="screen-tab active" data-screen="dashboard">Dashboard LP</button>
+    <button class="screen-tab" data-screen="course">Kurs-Ansicht</button>
+    <button class="screen-tab" data-screen="create">Aufgabe erstellen</button>
+    <button class="screen-tab" data-screen="solve">Aufgabe lösen (SuS)</button>
+  </div>
+  <div class="device-toggle" id="deviceToggle">
+    <button class="device-btn active" data-device="both" title="Beide">🖥️📱</button>
+    <button class="device-btn" data-device="desktop" title="Desktop">🖥️</button>
+    <button class="device-btn" data-device="mobile" title="Mobile">📱</button>
+  </div>
+</nav>
+
+<div class="canvas">
+
+  <!-- ============================================ -->
+  <!-- SCREEN 1: DASHBOARD LP                       -->
+  <!-- ============================================ -->
+  <div class="screen active" id="screen-dashboard">
+    <div class="screen-info">
+      <h2>1 · Lehrer-Dashboard</h2>
+      <p>Startseite nach dem Login – Überblick über alle Kurse, offene Korrekturen, und KI-Zusammenfassung</p>
+    </div>
+
+    <div class="wire-wrapper">
+      <!-- DESKTOP -->
+      <div class="wire-device desktop-only">
+        <div class="wire-device-label">Desktop · 1280px</div>
+        <div class="wire-frame desktop" style="position:relative;">
+          <div class="w-annotation" style="top:14px;right:-140px;">← Profil & Logout</div>
+          <div class="w-annotation" style="top:60px;left:-120px;">Navigation →</div>
+          <div class="w-annotation" style="top:120px;right:-160px;">← KI-Zusammenfassung</div>
+
+          <!-- App bar -->
+          <div class="w-appbar">
+            <div class="w-appbar-logo">S</div>
+            <div class="w-appbar-title">SmartLearn</div>
+            <div class="w-appbar-spacer"></div>
+            <div class="w-appbar-icon">🔔</div>
+            <div class="w-avatar">SA</div>
+          </div>
+
+          <div class="w-layout">
+            <!-- Sidebar -->
+            <div class="w-sidebar">
+              <div class="w-sidebar-item active"><span class="ico">📊</span> Dashboard</div>
+              <div class="w-sidebar-item"><span class="ico">📚</span> Meine Kurse</div>
+              <div class="w-sidebar-item"><span class="ico">📝</span> Korrekturen <span class="w-badge red" style="margin-left:auto;">5</span></div>
+              <div class="w-sidebar-item"><span class="ico">👁️</span> Arbeitsstand</div>
+              <div class="w-sidebar-divider"></div>
+              <div class="w-sidebar-label">Kurse</div>
+              <div class="w-sidebar-item"><span class="ico">📘</span> 5a Deutsch</div>
+              <div class="w-sidebar-item"><span class="ico">📗</span> 5a Mathe</div>
+              <div class="w-sidebar-item"><span class="ico">📙</span> 5a NMG</div>
+              <div class="w-sidebar-item"><span class="ico">📕</span> 5a M&I</div>
+              <div class="w-sidebar-divider"></div>
+              <div class="w-sidebar-item"><span class="ico">⚙️</span> Einstellungen</div>
+            </div>
+
+            <!-- Main -->
+            <div class="w-main">
+              <div class="w-page-title">Guten Morgen, Sascha 👋</div>
+              <div class="w-page-subtitle">Freitag, 14. Februar 2026 · 4 Kurse aktiv</div>
+
+              <!-- AI Banner -->
+              <div class="w-ai-banner">
+                <div class="ai-icon">🤖</div>
+                <div class="ai-text"><strong>KI-Zusammenfassung:</strong> 3 SuS haben Schwierigkeiten mit «tz/z-Regeln» in Deutsch. Lara und Tim haben seit 3 Tagen keine Aufgabe abgegeben.</div>
+              </div>
+
+              <!-- Stats -->
+              <div class="w-stats">
+                <div class="w-stat">
+                  <div class="w-stat-value" style="color:var(--wire-red);">5</div>
+                  <div class="w-stat-label">Offene Korrekturen</div>
+                </div>
+                <div class="w-stat">
+                  <div class="w-stat-value">18</div>
+                  <div class="w-stat-label">Abgaben heute</div>
+                </div>
+                <div class="w-stat">
+                  <div class="w-stat-value" style="color:var(--wire-green);">74%</div>
+                  <div class="w-stat-label">Ø Erledigt</div>
+                </div>
+                <div class="w-stat">
+                  <div class="w-stat-value">20</div>
+                  <div class="w-stat-label">Aktive SuS</div>
+                </div>
+              </div>
+
+              <!-- Course tiles -->
+              <div style="font-weight:600;font-size:14px;margin-bottom:10px;">Meine Kurse</div>
+              <div class="w-courses">
+                <div class="w-course-tile c1">
+                  <div class="tile-icon">📘</div>
+                  <div class="tile-name">5a Deutsch</div>
+                  <div class="tile-meta">12 Aufgaben · 3 offen</div>
+                </div>
+                <div class="w-course-tile c2">
+                  <div class="tile-icon">📗</div>
+                  <div class="tile-name">5a Mathe</div>
+                  <div class="tile-meta">8 Aufgaben · 1 offen</div>
+                </div>
+                <div class="w-course-tile c3">
+                  <div class="tile-icon">📙</div>
+                  <div class="tile-name">5a NMG</div>
+                  <div class="tile-meta">6 Aufgaben</div>
+                </div>
+                <div class="w-course-tile c4">
+                  <div class="tile-icon">📕</div>
+                  <div class="tile-name">5a M&I</div>
+                  <div class="tile-meta">4 Aufgaben</div>
+                </div>
+              </div>
+
+              <!-- Recent activity -->
+              <div class="w-card">
+                <div class="w-card-header">
+                  <div class="w-card-title">📥 Letzte Abgaben</div>
+                  <span class="w-badge blue">Live</span>
+                </div>
+                <table class="w-table">
+                  <thead><tr><th>SuS</th><th>Aufgabe</th><th>Kurs</th><th>Status</th><th></th></tr></thead>
+                  <tbody>
+                    <tr><td>🟢 Anna M.</td><td>Aufsatz: Mein Hobby</td><td>Deutsch</td><td><span class="w-badge orange">Neu</span></td><td style="color:var(--wire-accent);cursor:pointer;">→</td></tr>
+                    <tr><td>🟢 Luca K.</td><td>tz/z-Übung (Quiz)</td><td>Deutsch</td><td><span class="w-badge green">92%</span></td><td style="color:var(--wire-accent);cursor:pointer;">→</td></tr>
+                    <tr><td>🟡 Emma S.</td><td>Geometrie Foto</td><td>Mathe</td><td><span class="w-badge orange">Neu</span></td><td style="color:var(--wire-accent);cursor:pointer;">→</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MOBILE -->
+      <div class="wire-device mobile-only">
+        <div class="wire-device-label">Mobile · 375px</div>
+        <div class="wire-frame mobile">
+          <div class="w-appbar">
+            <div class="w-appbar-logo">S</div>
+            <div class="w-appbar-title">SmartLearn</div>
+            <div class="w-appbar-spacer"></div>
+            <div class="w-appbar-icon">🔔</div>
+            <div class="w-avatar">SA</div>
+          </div>
+
+          <div style="padding:16px;">
+            <div class="w-page-title" style="font-size:17px;">Hallo, Sascha 👋</div>
+            <div class="w-page-subtitle">Fr, 14. Feb. · 4 Kurse</div>
+
+            <div class="w-ai-banner" style="margin-top:12px;">
+              <div class="ai-icon">🤖</div>
+              <div class="ai-text"><strong>KI:</strong> 3 SuS haben Probleme bei «tz/z-Regeln».</div>
+            </div>
+
+            <div class="w-stats cols-2" style="margin-top:12px;">
+              <div class="w-stat"><div class="w-stat-value" style="font-size:20px;color:var(--wire-red);">5</div><div class="w-stat-label">Korrekturen</div></div>
+              <div class="w-stat"><div class="w-stat-value" style="font-size:20px;color:var(--wire-green);">74%</div><div class="w-stat-label">Erledigt</div></div>
+            </div>
+
+            <div style="font-weight:600;font-size:13px;margin:12px 0 8px;">Meine Kurse</div>
+            <div class="w-courses" style="grid-template-columns:repeat(2,1fr);">
+              <div class="w-course-tile c1"><div class="tile-icon">📘</div><div class="tile-name">Deutsch</div><div class="tile-meta">3 offen</div></div>
+              <div class="w-course-tile c2"><div class="tile-icon">📗</div><div class="tile-name">Mathe</div><div class="tile-meta">1 offen</div></div>
+              <div class="w-course-tile c3"><div class="tile-icon">📙</div><div class="tile-name">NMG</div><div class="tile-meta">–</div></div>
+              <div class="w-course-tile c4"><div class="tile-icon">📕</div><div class="tile-name">M&I</div><div class="tile-meta">–</div></div>
+            </div>
+
+            <div style="font-weight:600;font-size:13px;margin:12px 0 8px;">Letzte Abgaben</div>
+            <div class="w-card" style="padding:10px;">
+              <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--wire-fill);font-size:12px;">
+                <span>🟢</span><span style="flex:1;">Anna M. – Aufsatz</span><span class="w-badge orange">Neu</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--wire-fill);font-size:12px;">
+                <span>🟢</span><span style="flex:1;">Luca K. – tz/z-Quiz</span><span class="w-badge green">92%</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:12px;">
+                <span>🟡</span><span style="flex:1;">Emma S. – Geometrie</span><span class="w-badge orange">Neu</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="flex:1;"></div>
+          <div class="w-bottomnav">
+            <div class="w-bottomnav-item active"><span class="bnav-icon">📊</span>Home</div>
+            <div class="w-bottomnav-item"><span class="bnav-icon">📚</span>Kurse</div>
+            <div class="w-bottomnav-item"><span class="bnav-icon">📝</span>Korrektur</div>
+            <div class="w-bottomnav-item"><span class="bnav-icon">👁️</span>Stand</div>
+            <div class="w-bottomnav-item"><span class="bnav-icon">⚙️</span>Mehr</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SCREEN 2: KURS-ANSICHT                       -->
+  <!-- ============================================ -->
+  <div class="screen" id="screen-course">
+    <div class="screen-info">
+      <h2>2 · Kurs-Ansicht (Themen & Aufgaben)</h2>
+      <p>Nach Klick auf einen Kurs – Themen als Ordner, Aufgaben als Kacheln mit Status-Übersicht</p>
+    </div>
+
+    <div class="wire-wrapper">
+      <!-- DESKTOP -->
+      <div class="wire-device desktop-only">
+        <div class="wire-device-label">Desktop · 1280px</div>
+        <div class="wire-frame desktop" style="position:relative;">
+          <div class="w-annotation" style="top:60px;right:-180px;">← Themen = farbige Ordner</div>
+          <div class="w-annotation" style="top:300px;right:-190px;">← Aufgaben als Kacheln<br>&nbsp;&nbsp;&nbsp;mit Typ-Icon</div>
+
+          <div class="w-appbar">
+            <div class="w-appbar-logo">S</div>
+            <div class="w-appbar-title">SmartLearn</div>
+            <div class="w-appbar-spacer"></div>
+            <div class="w-appbar-icon">🔔</div>
+            <div class="w-avatar">SA</div>
+          </div>
+          <div class="w-layout">
+            <div class="w-sidebar">
+              <div class="w-sidebar-item"><span class="ico">📊</span> Dashboard</div>
+              <div class="w-sidebar-item active"><span class="ico">📚</span> Meine Kurse</div>
+              <div class="w-sidebar-item"><span class="ico">📝</span> Korrekturen</div>
+              <div class="w-sidebar-item"><span class="ico">👁️</span> Arbeitsstand</div>
+              <div class="w-sidebar-divider"></div>
+              <div class="w-sidebar-label">5a Deutsch</div>
+              <div class="w-sidebar-item active" style="padding-left:20px;"><span class="ico" style="color:var(--wire-accent);">●</span> Rechtschreibung</div>
+              <div class="w-sidebar-item" style="padding-left:20px;"><span class="ico" style="color:var(--wire-green);">●</span> Grammatik</div>
+              <div class="w-sidebar-item" style="padding-left:20px;"><span class="ico" style="color:var(--wire-orange);">●</span> Aufsatz</div>
+              <div class="w-sidebar-item" style="padding-left:20px;"><span class="ico" style="color:var(--wire-purple);">●</span> Lesen</div>
+            </div>
+
+            <div class="w-main">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                <div>
+                  <div class="w-page-title">📘 5a Deutsch</div>
+                  <div class="w-page-subtitle">20 SuS · 12 Aufgaben · Kurscode: DT-5A</div>
+                </div>
+                <div style="display:flex;gap:8px;">
+                  <button class="w-btn secondary">👁️ Arbeitsstand</button>
+                  <button class="w-btn primary">+ Aufgabe</button>
+                </div>
+              </div>
+
+              <!-- Topic: Rechtschreibung -->
+              <div class="w-card" style="border-left:4px solid var(--wire-accent);">
+                <div class="w-card-header">
+                  <div class="w-card-title">🔵 Rechtschreibung</div>
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    <span style="font-size:11px;color:var(--wire-text-muted);">5 Aufgaben</span>
+                    <span class="w-badge green">Ø 68% erledigt</span>
+                  </div>
+                </div>
+                <div class="w-tasks-grid">
+                  <div class="w-task-tile done"><div class="task-check">✅</div><div class="task-icon">📝</div><div class="task-name">tz oder z?</div></div>
+                  <div class="w-task-tile done"><div class="task-check">✅</div><div class="task-icon">🧩</div><div class="task-name">tz/z Quiz</div></div>
+                  <div class="w-task-tile"><div class="task-icon">🤖</div><div class="task-name">KI-Übung Dossier</div></div>
+                  <div class="w-task-tile"><div class="task-icon">📝</div><div class="task-name">Wortfamilien</div></div>
+                  <div class="w-task-tile"><div class="task-icon">📸</div><div class="task-name">Arbeitsblatt S.42</div></div>
+                </div>
+              </div>
+
+              <!-- Topic: Grammatik -->
+              <div class="w-card" style="border-left:4px solid var(--wire-green);">
+                <div class="w-card-header">
+                  <div class="w-card-title">🟢 Grammatik</div>
+                  <div style="display:flex;gap:6px;align-items:center;">
+                    <span style="font-size:11px;color:var(--wire-text-muted);">4 Aufgaben</span>
+                    <span class="w-badge orange">Ø 35% erledigt</span>
+                  </div>
+                </div>
+                <div class="w-tasks-grid">
+                  <div class="w-task-tile"><div class="task-icon">📝</div><div class="task-name">Kommaregeln</div></div>
+                  <div class="w-task-tile"><div class="task-icon">🧩</div><div class="task-name">Satzglieder Quiz</div></div>
+                  <div class="w-task-tile"><div class="task-icon">📝</div><div class="task-name">war/wahr</div></div>
+                  <div class="w-task-tile"><div class="task-icon">🤖</div><div class="task-name">KI-Test Grammatik</div></div>
+                </div>
+              </div>
+
+              <!-- Topic: Aufsatz -->
+              <div class="w-card" style="border-left:4px solid var(--wire-orange);">
+                <div class="w-card-header">
+                  <div class="w-card-title">🟠 Aufsatz</div>
+                  <div><span class="w-badge blue">3 Aufgaben</span></div>
+                </div>
+                <div class="w-tasks-grid">
+                  <div class="w-task-tile"><div class="task-icon">✍️</div><div class="task-name">Mein Hobby</div></div>
+                  <div class="w-task-tile"><div class="task-icon">✍️</div><div class="task-name">Bildergeschichte</div></div>
+                  <div class="w-task-tile"><div class="task-icon">✍️</div><div class="task-name">Brief schreiben</div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MOBILE -->
+      <div class="wire-device mobile-only">
+        <div class="wire-device-label">Mobile · 375px</div>
+        <div class="wire-frame mobile">
+          <div class="w-appbar">
+            <span style="cursor:pointer;font-size:18px;">←</span>
+            <div class="w-appbar-title">📘 5a Deutsch</div>
+            <div class="w-appbar-spacer"></div>
+            <button class="w-btn primary" style="padding:6px 10px;font-size:11px;">+ Aufgabe</button>
+          </div>
+
+          <div style="padding:12px 16px;">
+            <div style="font-size:12px;color:var(--wire-text-muted);margin-bottom:12px;">20 SuS · Code: DT-5A</div>
+
+            <div class="w-topic" style="border-left:4px solid var(--wire-accent);">
+              <div class="w-topic-info">
+                <div class="w-topic-name">🔵 Rechtschreibung</div>
+                <div class="w-topic-meta">5 Aufgaben · 68% erledigt</div>
+              </div>
+              <span style="color:var(--wire-text-muted);">›</span>
+            </div>
+
+            <div class="w-topic" style="border-left:4px solid var(--wire-green);">
+              <div class="w-topic-info">
+                <div class="w-topic-name">🟢 Grammatik</div>
+                <div class="w-topic-meta">4 Aufgaben · 35% erledigt</div>
+              </div>
+              <span style="color:var(--wire-text-muted);">›</span>
+            </div>
+
+            <div class="w-topic" style="border-left:4px solid var(--wire-orange);">
+              <div class="w-topic-info">
+                <div class="w-topic-name">🟠 Aufsatz</div>
+                <div class="w-topic-meta">3 Aufgaben</div>
+              </div>
+              <span style="color:var(--wire-text-muted);">›</span>
+            </div>
+
+            <div class="w-topic" style="border-left:4px solid var(--wire-purple);">
+              <div class="w-topic-info">
+                <div class="w-topic-name">🟣 Lesen</div>
+                <div class="w-topic-meta">2 Aufgaben</div>
+              </div>
+              <span style="color:var(--wire-text-muted);">›</span>
+            </div>
+
+            <div style="height:16px;"></div>
+            <div style="font-weight:600;font-size:13px;margin-bottom:8px;">📌 Aufgaben in «Rechtschreibung»</div>
+            <div class="w-tasks-grid" style="grid-template-columns:repeat(3,1fr);">
+              <div class="w-task-tile done"><div class="task-check">✅</div><div class="task-icon">📝</div><div class="task-name">tz/z?</div></div>
+              <div class="w-task-tile done"><div class="task-check">✅</div><div class="task-icon">🧩</div><div class="task-name">Quiz</div></div>
+              <div class="w-task-tile"><div class="task-icon">🤖</div><div class="task-name">KI-Übung</div></div>
+              <div class="w-task-tile"><div class="task-icon">📝</div><div class="task-name">Wortfam.</div></div>
+              <div class="w-task-tile"><div class="task-icon">📸</div><div class="task-name">AB S.42</div></div>
+            </div>
+          </div>
+
+          <div style="flex:1;"></div>
+          <div class="w-bottomnav">
+            <div class="w-bottomnav-item"><span class="bnav-icon">📊</span>Home</div>
+            <div class="w-bottomnav-item active"><span class="bnav-icon">📚</span>Kurse</div>
+            <div class="w-bottomnav-item"><span class="bnav-icon">📝</span>Korrektur</div>
+            <div class="w-bottomnav-item"><span class="bnav-icon">👁️</span>Stand</div>
+            <div class="w-bottomnav-item"><span class="bnav-icon">⚙️</span>Mehr</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SCREEN 3: AUFGABE ERSTELLEN                  -->
+  <!-- ============================================ -->
+  <div class="screen" id="screen-create">
+    <div class="screen-info">
+      <h2>3 · Aufgabe erstellen (Lehrperson)</h2>
+      <p>Formular zum Erstellen einer neuen Aufgabe – Typ wählen, Inhalt eingeben, KI-Features aktivieren</p>
+    </div>
+
+    <div class="wire-wrapper">
+      <!-- DESKTOP -->
+      <div class="wire-device desktop-only">
+        <div class="wire-device-label">Desktop · 1280px</div>
+        <div class="wire-frame desktop" style="position:relative;">
+          <div class="w-annotation" style="top:180px;right:-200px;">← Aufgabentyp bestimmt<br>&nbsp;&nbsp;&nbsp;die Abgabeform</div>
+          <div class="w-annotation" style="top:430px;right:-200px;">← KI-Features als<br>&nbsp;&nbsp;&nbsp;optionale Toggles</div>
+
+          <div class="w-appbar">
+            <div class="w-appbar-logo">S</div>
+            <div class="w-appbar-title">SmartLearn</div>
+            <div class="w-appbar-spacer"></div>
+            <div class="w-avatar">SA</div>
+          </div>
+          <div class="w-layout">
+            <div class="w-sidebar">
+              <div class="w-sidebar-item"><span class="ico">📊</span> Dashboard</div>
+              <div class="w-sidebar-item active"><span class="ico">📚</span> Meine Kurse</div>
+              <div class="w-sidebar-item"><span class="ico">📝</span> Korrekturen</div>
+              <div class="w-sidebar-item"><span class="ico">👁️</span> Arbeitsstand</div>
+            </div>
+            <div class="w-main" style="max-width:560px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+                <span style="cursor:pointer;font-size:18px;">←</span>
+                <div class="w-page-title" style="font-size:18px;">Neue Aufgabe erstellen</div>
+              </div>
+              <div class="w-page-subtitle" style="margin-top:-12px;">📘 5a Deutsch → Rechtschreibung</div>
+
+              <div class="w-form-group">
+                <div class="w-label">Titel der Aufgabe</div>
+                <input class="w-input" value="Wortfamilien: lernen, lehren, leeren" />
+              </div>
+
+              <div class="w-form-group">
+                <div class="w-label">Beschreibung / Aufgabenstellung</div>
+                <textarea class="w-textarea">Finde zu jedem Wort (lernen, lehren, leeren) mindestens 3 verwandte Wörter. Schreibe sie auf und markiere den Wortstamm.</textarea>
+              </div>
+
+              <div class="w-form-group">
+                <div class="w-label">Aufgabentyp wählen</div>
+                <div class="w-select-grid">
+                  <div class="w-select-option selected">
+                    <div class="opt-icon">📝</div>
+                    <div class="opt-label">Textantwort</div>
+                  </div>
+                  <div class="w-select-option">
+                    <div class="opt-icon">📸</div>
+                    <div class="opt-label">Bild-Upload</div>
+                  </div>
+                  <div class="w-select-option">
+                    <div class="opt-icon">🧩</div>
+                    <div class="opt-label">Multiple-Choice</div>
+                  </div>
+                  <div class="w-select-option">
+                    <div class="opt-icon">🤖</div>
+                    <div class="opt-label">KI-Quiz (Dossier)</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="w-form-group">
+                <div class="w-label">Anhänge (optional)</div>
+                <div class="w-upload">
+                  <div class="upload-icon">📎</div>
+                  PDF, Bild oder Dossier hier ablegen
+                </div>
+              </div>
+
+              <!-- KI Toggles -->
+              <div class="w-card" style="background:var(--wire-orange-light);border-color:rgba(234,140,60,0.3);">
+                <div class="w-card-title" style="margin-bottom:10px;">🤖 KI-Funktionen</div>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                  <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
+                    <input type="checkbox" checked style="width:18px;height:18px;accent-color:var(--wire-orange);">
+                    <span><strong>Auto-Feedback</strong> – KI gibt SuS sofort Rückmeldung auf Textantworten</span>
+                  </label>
+                  <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
+                    <input type="checkbox" style="width:18px;height:18px;accent-color:var(--wire-orange);">
+                    <span><strong>Rechtschreib-Check</strong> – KI prüft Orthografie vor Abgabe</span>
+                  </label>
+                  <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;">
+                    <input type="checkbox" style="width:18px;height:18px;accent-color:var(--wire-orange);">
+                    <span><strong>Musterlösung generieren</strong> – KI erstellt Lösungsvorschlag</span>
+                  </label>
+                </div>
+              </div>
+
+              <div style="display:flex;gap:10px;margin-top:20px;">
+                <button class="w-btn primary" style="flex:1;">✅ Aufgabe veröffentlichen</button>
+                <button class="w-btn secondary">Entwurf speichern</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MOBILE -->
+      <div class="wire-device mobile-only">
+        <div class="wire-device-label">Mobile · 375px</div>
+        <div class="wire-frame mobile">
+          <div class="w-appbar">
+            <span style="cursor:pointer;font-size:18px;">←</span>
+            <div class="w-appbar-title">Neue Aufgabe</div>
+            <div class="w-appbar-spacer"></div>
+            <button class="w-btn primary" style="padding:6px 10px;font-size:11px;">Speichern</button>
+          </div>
+
+          <div style="padding:16px;font-size:13px;">
+            <div style="font-size:11px;color:var(--wire-text-muted);margin-bottom:12px;">📘 Deutsch → Rechtschreibung</div>
+
+            <div class="w-form-group">
+              <div class="w-label">Titel</div>
+              <input class="w-input" value="Wortfamilien" style="font-size:13px;" />
+            </div>
+
+            <div class="w-form-group">
+              <div class="w-label">Aufgabenstellung</div>
+              <textarea class="w-textarea" style="font-size:13px;min-height:60px;">Finde zu jedem Wort mindestens 3 verwandte Wörter...</textarea>
+            </div>
+
+            <div class="w-form-group">
+              <div class="w-label">Typ</div>
+              <div class="w-select-grid">
+                <div class="w-select-option selected" style="padding:8px;">
+                  <div class="opt-icon">📝</div><div class="opt-label" style="font-size:11px;">Text</div>
+                </div>
+                <div class="w-select-option" style="padding:8px;">
+                  <div class="opt-icon">📸</div><div class="opt-label" style="font-size:11px;">Bild</div>
+                </div>
+                <div class="w-select-option" style="padding:8px;">
+                  <div class="opt-icon">🧩</div><div class="opt-label" style="font-size:11px;">Quiz</div>
+                </div>
+                <div class="w-select-option" style="padding:8px;">
+                  <div class="opt-icon">🤖</div><div class="opt-label" style="font-size:11px;">KI-Quiz</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="w-card" style="background:var(--wire-orange-light);border-color:rgba(234,140,60,0.3);padding:12px;">
+              <div style="font-weight:600;font-size:12px;margin-bottom:8px;">🤖 KI-Features</div>
+              <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:6px;">
+                <input type="checkbox" checked style="accent-color:var(--wire-orange);"> Auto-Feedback
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:6px;">
+                <input type="checkbox" style="accent-color:var(--wire-orange);"> Rechtschreib-Check
+              </label>
+            </div>
+
+            <button class="w-btn primary" style="width:100%;margin-top:12px;justify-content:center;">✅ Veröffentlichen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- SCREEN 4: AUFGABE LÖSEN (SuS)               -->
+  <!-- ============================================ -->
+  <div class="screen" id="screen-solve">
+    <div class="screen-info">
+      <h2>4 · Aufgabe lösen (Schüler-Ansicht)</h2>
+      <p>So sehen die SuS eine Aufgabe – Aufgabenstellung, Eingabe, KI-Feedback, Abgabe</p>
+    </div>
+
+    <div class="wire-wrapper">
+      <!-- DESKTOP -->
+      <div class="wire-device desktop-only">
+        <div class="wire-device-label">Desktop · 1280px</div>
+        <div class="wire-frame desktop" style="position:relative;">
+          <div class="w-annotation" style="top:200px;right:-200px;">← Schüler schreibt hier<br>&nbsp;&nbsp;&nbsp;seine Antwort</div>
+          <div class="w-annotation" style="top:380px;right:-200px;">← KI gibt sofort Feedback<br>&nbsp;&nbsp;&nbsp;BEVOR LP korrigiert</div>
+
+          <div class="w-appbar">
+            <div class="w-appbar-logo">S</div>
+            <div class="w-appbar-title">SmartLearn</div>
+            <div class="w-appbar-spacer"></div>
+            <div class="w-avatar" style="background:var(--wire-green-light);border-color:var(--wire-green);color:var(--wire-green);">AM</div>
+          </div>
+          <div class="w-layout">
+            <!-- Student sidebar - simpler -->
+            <div class="w-sidebar" style="width:180px;">
+              <div class="w-sidebar-item"><span class="ico">🏠</span> Mein Start</div>
+              <div class="w-sidebar-item active"><span class="ico">📋</span> Aufgaben</div>
+              <div class="w-sidebar-item"><span class="ico">📈</span> Fortschritt</div>
+              <div class="w-sidebar-divider"></div>
+              <div class="w-sidebar-label">Deutsch</div>
+              <div class="w-sidebar-item" style="padding-left:20px;font-size:12px;">Rechtschreibung</div>
+              <div class="w-sidebar-item" style="padding-left:20px;font-size:12px;">Grammatik</div>
+              <div class="w-sidebar-item" style="padding-left:20px;font-size:12px;">Aufsatz</div>
+            </div>
+
+            <div class="w-main" style="max-width:580px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span style="cursor:pointer;font-size:18px;">←</span>
+                <span class="w-badge blue">📘 Deutsch</span>
+                <span class="w-badge" style="background:var(--wire-fill);">Rechtschreibung</span>
+              </div>
+              <div class="w-page-title" style="font-size:18px;margin-bottom:16px;">📝 Wortfamilien: lernen, lehren, leeren</div>
+
+              <!-- Task description -->
+              <div class="w-card" style="background:var(--wire-fill-light);">
+                <div style="font-weight:600;font-size:13px;margin-bottom:6px;">Aufgabenstellung</div>
+                <div style="font-size:13px;line-height:1.6;">Finde zu jedem Wort (<strong>lernen</strong>, <strong>lehren</strong>, <strong>leeren</strong>) mindestens 3 verwandte Wörter. Schreibe sie auf und <u>markiere den Wortstamm</u>.</div>
+              </div>
+
+              <!-- Text input area -->
+              <div style="margin-top:16px;">
+                <div class="w-label">Deine Antwort</div>
+                <textarea class="w-textarea" style="min-height:120px;">lernen → Lerner, Lernstoff, gelernt, Lernziel
+lehren → Lehrer, Lehrerin, belehren, Lehrstoff
+leeren → leer, Leerung, entleeren, ausgeleert</textarea>
+              </div>
+
+              <!-- KI Feedback -->
+              <div class="w-feedback ai-feedback">
+                <div class="w-feedback-header">
+                  <span>🤖</span> KI-Feedback
+                  <span class="w-badge green" style="margin-left:auto;">Gut!</span>
+                </div>
+                <div class="w-feedback-text">
+                  Super gemacht, Anna! Du hast zu jedem Wort mindestens 3 verwandte Wörter gefunden. 👍<br><br>
+                  <strong>Tipp:</strong> Bei «leeren» → «ausgeleert» ist der Wortstamm <strong>leer</strong>. Kannst du den Wortstamm auch bei den anderen Wörtern noch unterstreichen?<br><br>
+                  <strong>Bonus:</strong> Kennst du den Unterschied zwischen «lehren» und «lernen»? Wer lehrt und wer lernt?
+                </div>
+              </div>
+
+              <div style="display:flex;gap:10px;margin-top:16px;">
+                <button class="w-btn primary" style="flex:1;">✅ Abgeben</button>
+                <button class="w-btn ai">🤖 Nochmal prüfen</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MOBILE -->
+      <div class="wire-device mobile-only">
+        <div class="wire-device-label">Mobile · 375px</div>
+        <div class="wire-frame mobile">
+          <div class="w-appbar">
+            <span style="cursor:pointer;font-size:18px;">←</span>
+            <div class="w-appbar-title" style="font-size:13px;">Wortfamilien</div>
+            <div class="w-appbar-spacer"></div>
+            <div class="w-avatar" style="background:var(--wire-green-light);border-color:var(--wire-green);color:var(--wire-green);width:26px;height:26px;font-size:10px;">AM</div>
+          </div>
+
+          <div style="padding:14px 16px;">
+            <div style="display:flex;gap:6px;margin-bottom:10px;">
+              <span class="w-badge blue" style="font-size:9px;">Deutsch</span>
+              <span class="w-badge" style="background:var(--wire-fill);font-size:9px;">Rechtschreibung</span>
+            </div>
+
+            <div class="w-card" style="background:var(--wire-fill-light);padding:12px;">
+              <div style="font-weight:600;font-size:12px;margin-bottom:4px;">Aufgabe</div>
+              <div style="font-size:12px;line-height:1.5;">Finde zu jedem Wort (<strong>lernen</strong>, <strong>lehren</strong>, <strong>leeren</strong>) mindestens 3 verwandte Wörter.</div>
+            </div>
+
+            <div style="margin-top:12px;">
+              <div class="w-label">Deine Antwort</div>
+              <textarea class="w-textarea" style="font-size:13px;min-height:100px;">lernen → Lerner, Lernstoff, gelernt
+lehren → Lehrer, Lehrerin, belehren
+leeren → leer, Leerung, entleeren</textarea>
+            </div>
+
+            <div class="w-feedback ai-feedback" style="margin-top:12px;padding:12px;">
+              <div class="w-feedback-header" style="font-size:12px;">
+                <span>🤖</span> KI-Feedback
+                <span class="w-badge green" style="margin-left:auto;">Gut!</span>
+              </div>
+              <div class="w-feedback-text" style="font-size:11px;">
+                Super, Anna! Du hast zu jedem Wort 3 Wörter gefunden. 👍<br><br>
+                <strong>Tipp:</strong> Kannst du den Wortstamm noch markieren?
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:12px;">
+              <button class="w-btn primary" style="flex:1;font-size:12px;justify-content:center;">✅ Abgeben</button>
+              <button class="w-btn ai" style="font-size:12px;">🤖 Prüfen</button>
+            </div>
+          </div>
+
+          <div style="flex:1;"></div>
+          <div class="w-bottomnav">
+            <div class="w-bottomnav-item"><span class="bnav-icon">🏠</span>Start</div>
+            <div class="w-bottomnav-item active"><span class="bnav-icon">📋</span>Aufgaben</div>
+            <div class="w-bottomnav-item"><span class="bnav-icon">📈</span>Fortschritt</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Screen tabs
+  document.querySelectorAll('.screen-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.screen-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('screen-' + tab.dataset.screen).classList.add('active');
+    });
+  });
+
+  // Device toggle
+  document.querySelectorAll('.device-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.device-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.body.className = 'show-' + btn.dataset.device;
+    });
+  });
+</script>
+</body>
+</html>

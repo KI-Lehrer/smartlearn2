@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartLearn – Sitemap</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface-hover: #222633;
+    --border: #2a2e3d;
+    --text: #e4e6ef;
+    --text-muted: #8b8fa3;
+    --accent: #6c5ce7;
+    --accent-light: #a29bfe;
+    --teacher: #00b894;
+    --teacher-bg: rgba(0, 184, 148, 0.08);
+    --teacher-border: rgba(0, 184, 148, 0.25);
+    --student: #0984e3;
+    --student-bg: rgba(9, 132, 227, 0.08);
+    --student-border: rgba(9, 132, 227, 0.25);
+    --ai: #e17055;
+    --ai-bg: rgba(225, 112, 85, 0.08);
+    --ai-border: rgba(225, 112, 85, 0.25);
+    --shared: #fdcb6e;
+    --shared-bg: rgba(253, 203, 110, 0.08);
+    --shared-border: rgba(253, 203, 110, 0.25);
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 40px 24px;
+    line-height: 1.5;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+    animation: fadeIn 0.6s ease;
+  }
+
+  .header-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 20px;
+    letter-spacing: 0.5px;
+  }
+
+  .header-badge span { color: var(--accent-light); }
+
+  .header h1 {
+    font-size: clamp(32px, 5vw, 48px);
+    font-weight: 700;
+    letter-spacing: -1.5px;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, var(--text) 0%, var(--accent-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .header p {
+    color: var(--text-muted);
+    font-size: 16px;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 48px;
+    animation: fadeIn 0.6s ease 0.1s both;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  /* Sections */
+  .section {
+    margin-bottom: 48px;
+    animation: slideUp 0.5s ease both;
+  }
+
+  .section:nth-child(3) { animation-delay: 0.15s; }
+  .section:nth-child(4) { animation-delay: 0.25s; }
+  .section:nth-child(5) { animation-delay: 0.35s; }
+  .section:nth-child(6) { animation-delay: 0.45s; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .section-header h2 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+  }
+
+  .section-header .section-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-left: auto;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* Cards Grid */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 12px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    border-radius: var(--radius) var(--radius) 0 0;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+
+  .card:hover {
+    border-color: transparent;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .card:hover::before { opacity: 1; }
+
+  .card.teacher { border-left: 3px solid var(--teacher); }
+  .card.teacher::before { background: var(--teacher); }
+  .card.teacher:hover { background: var(--teacher-bg); border-color: var(--teacher-border); }
+
+  .card.student { border-left: 3px solid var(--student); }
+  .card.student::before { background: var(--student); }
+  .card.student:hover { background: var(--student-bg); border-color: var(--student-border); }
+
+  .card.ai { border-left: 3px solid var(--ai); }
+  .card.ai::before { background: var(--ai); }
+  .card.ai:hover { background: var(--ai-bg); border-color: var(--ai-border); }
+
+  .card.shared { border-left: 3px solid var(--shared); }
+  .card.shared::before { background: var(--shared); }
+  .card.shared:hover { background: var(--shared-bg); border-color: var(--shared-border); }
+
+  .card-title {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-title .emoji { font-size: 16px; }
+
+  .card-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.55;
+  }
+
+  .card-tags {
+    display: flex;
+    gap: 6px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .tag {
+    font-size: 11px;
+    font-family: 'Space Mono', monospace;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+
+  .tag.priority {
+    background: rgba(108, 92, 231, 0.15);
+    color: var(--accent-light);
+    border-color: rgba(108, 92, 231, 0.3);
+  }
+
+  .tag.mvp {
+    background: rgba(0, 184, 148, 0.15);
+    color: var(--teacher);
+    border-color: rgba(0, 184, 148, 0.3);
+  }
+
+  .tag.later {
+    background: rgba(255,255,255,0.03);
+    color: var(--text-muted);
+    opacity: 0.7;
+  }
+
+  /* Flow Section */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding: 20px 0;
+    margin-bottom: 48px;
+    animation: fadeIn 0.6s ease 0.1s both;
+  }
+
+  .flow-step {
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    text-align: center;
+    min-width: 160px;
+    transition: all 0.25s ease;
+  }
+
+  .flow-step:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+  }
+
+  .flow-step .step-emoji { font-size: 24px; margin-bottom: 8px; }
+  .flow-step .step-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+  .flow-step .step-desc { font-size: 11px; color: var(--text-muted); }
+
+  .flow-arrow {
+    flex-shrink: 0;
+    color: var(--accent);
+    font-size: 20px;
+    padding: 0 8px;
+    opacity: 0.6;
+  }
+
+  /* Phase Badge */
+  .phase-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+
+  .phase-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    position: relative;
+  }
+
+  .phase-badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+    font-weight: 700;
+  }
+
+  .phase-badge.p1 { background: rgba(0, 184, 148, 0.15); color: var(--teacher); }
+  .phase-badge.p2 { background: rgba(108, 92, 231, 0.15); color: var(--accent-light); }
+  .phase-badge.p3 { background: rgba(225, 112, 85, 0.15); color: var(--ai); }
+
+  .phase-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 8px; }
+  .phase-card p { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+
+  .phase-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .phase-list li {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding-left: 20px;
+    position: relative;
+  }
+
+  .phase-list li::before {
+    content: '→';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+  }
+
+  /* Footer note */
+  .footer-note {
+    text-align: center;
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 13px;
+    animation: fadeIn 0.6s ease 0.6s both;
+  }
+
+  .footer-note strong { color: var(--text); }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 640px) {
+    .cards { grid-template-columns: 1fr; }
+    .legend { gap: 12px; }
+    .flow { gap: 0; }
+    .phase-grid { grid-template-columns: 1fr; }
+    .section-header .section-desc { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-badge">📐 SITEMAP <span>v1.0</span></div>
+    <h1>SmartLearn</h1>
+    <p>KI-gestützte Lernplattform für individualisierten Unterricht – Aufgaben, Feedback, Überblick</p>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--teacher)"></div>Lehrer-Bereich</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--student)"></div>Schüler-Bereich</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--ai)"></div>KI-Funktionen</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--shared)"></div>Gemeinsam</div>
+  </div>
+
+  <!-- User Flow -->
+  <div class="flow">
+    <div class="flow-step">
+      <div class="step-emoji">🔑</div>
+      <div class="step-title">Login</div>
+      <div class="step-desc">Lehrer: E-Mail<br>SuS: Kurscode</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-emoji">📊</div>
+      <div class="step-title">Dashboard</div>
+      <div class="step-desc">Übersicht &<br>Schnellzugriff</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-emoji">📚</div>
+      <div class="step-title">Kurs wählen</div>
+      <div class="step-desc">Fächer &<br>Themen</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-emoji">✏️</div>
+      <div class="step-title">Aufgabe</div>
+      <div class="step-desc">Lösen oder<br>Erstellen</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-emoji">🤖</div>
+      <div class="step-title">KI-Feedback</div>
+      <div class="step-desc">Sofort-Rück-<br>meldung</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="step-emoji">✅</div>
+      <div class="step-title">Abgabe</div>
+      <div class="step-desc">LP sieht<br>Ergebnis</div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: Auth & Einstieg -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--shared-bg); color:var(--shared);">🔑</div>
+      <h2>Authentifizierung & Einstieg</h2>
+      <span class="section-desc">AUTH</span>
+    </div>
+    <div class="cards">
+      <div class="card shared">
+        <div class="card-title"><span class="emoji">🚪</span> Login-Seite</div>
+        <div class="card-desc">Zwei Wege: Lehrpersonen melden sich per E-Mail & Passwort an. SuS geben einen Kurscode ein (kein eigenes Konto nötig).</div>
+        <div class="card-tags"><span class="tag mvp">MVP</span><span class="tag">QR-Code Login</span></div>
+      </div>
+      <div class="card teacher">
+        <div class="card-title"><span class="emoji">👩‍🏫</span> LP-Registrierung</div>
+        <div class="card-desc">Neue Lehrpersonen erstellen ein Konto. Schulzugehörigkeit angeben, um Kurse im Kollegium teilen zu können.</div>
+        <div class="card-tags"><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card teacher">
+        <div class="card-title"><span class="emoji">🏫</span> Schulverwaltung</div>
+        <div class="card-desc">Admin-Zugang für die Schule: LP-Konten verwalten, Vertretungen eintragen, Kurse übertragen.</div>
+        <div class="card-tags"><span class="tag later">PHASE 3</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Lehrer-Dashboard -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--teacher-bg); color:var(--teacher);">📊</div>
+      <h2>Lehrer-Dashboard</h2>
+      <span class="section-desc">TEACHER</span>
+    </div>
+    <div class="cards">
+      <div class="card teacher">
+        <div class="card-title"><span class="emoji">🏠</span> Dashboard Home</div>
+        <div class="card-desc">Übersicht aller Kurse, offene Korrekturen, aktuelle Abgaben und KI-Zusammenfassung: «3 SuS brauchen Hilfe bei Thema X».</div>
+        <div class="card-tags"><span class="tag priority">PRIORITÄT</span><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card teacher">
+        <div class="card-title"><span class="emoji">📚</span> Kurse verwalten</div>
+        <div class="card-desc">Kurse erstellen (z.B. «5a Deutsch», «5a NMG»). Kurscode generieren, SuS einladen, Co-LP hinzufügen.</div>
+        <div class="card-tags"><span class="tag priority">PRIORITÄT</span><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card teacher">
+        <div class="card-title"><span class="emoji">📁</span> Themen & Lernbereiche</div>
+        <div class="card-desc">Innerhalb eines Kurses: Themen anlegen (z.B. «Wortarten», «Geometrie»), farblich kennzeichnen, per Drag&Drop sortieren.</div>
+        <div class="card-tags"><span class="tag priority">PRIORITÄT</span><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card teacher">
+        <div class="card-title"><span class="emoji">✏️</span> Aufgaben erstellen</div>
+        <div class="card-desc">Vier Typen: Freitext, Bild-Upload, Multiple-Choice und KI-Quiz (Dossier hochladen → Fragen werden generiert). Anhänge, Lösungen, Niveaus.</div>
+        <div class="card-tags"><span class="tag priority">PRIORITÄT</span><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card teacher">
+        <div class="card-title"><span class="emoji">👁️</span> Arbeitsstand</div>
+        <div class="card-desc">Tabellarische Übersicht: Welches Kind hat welche Aufgabe erledigt? Filter nach Thema, Status, SuS. Export als Excel.</div>
+        <div class="card-tags"><span class="tag priority">PRIORITÄT</span><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card teacher">
+        <div class="card-title"><span class="emoji">📝</span> Korrekturen</div>
+        <div class="card-desc">Alle offenen Abgaben in einer Liste. Text- oder Audio-Feedback geben. KI-Vorschlag als Basis nutzen und anpassen.</div>
+        <div class="card-tags"><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card teacher">
+        <div class="card-title"><span class="emoji">👥</span> SuS verwalten</div>
+        <div class="card-desc">Klassenliste, Sichtbarkeit pro Kind steuern, Gruppen definieren, individuelle Aufgaben zuweisen.</div>
+        <div class="card-tags"><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card teacher">
+        <div class="card-title"><span class="emoji">🔗</span> Material teilen</div>
+        <div class="card-desc">Aufgaben und Themen mit anderen LP teilen oder als Kopie senden. Material-Bibliothek über die Schule hinweg.</div>
+        <div class="card-tags"><span class="tag">PHASE 2</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: Schüler-Bereich -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--student-bg); color:var(--student);">🎒</div>
+      <h2>Schüler-Bereich</h2>
+      <span class="section-desc">STUDENT</span>
+    </div>
+    <div class="cards">
+      <div class="card student">
+        <div class="card-title"><span class="emoji">🏠</span> Mein Dashboard</div>
+        <div class="card-desc">«Was muss ich heute machen?» Offene Aufgaben, neue Feedbacks, Fortschrittsbalken pro Thema.</div>
+        <div class="card-tags"><span class="tag priority">PRIORITÄT</span><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card student">
+        <div class="card-title"><span class="emoji">📋</span> Meine Aufgaben</div>
+        <div class="card-desc">Alle Aufgaben nach Fach/Thema sortiert. Status: offen, in Bearbeitung, abgegeben, korrigiert. Filter & Suche.</div>
+        <div class="card-tags"><span class="tag priority">PRIORITÄT</span><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card student">
+        <div class="card-title"><span class="emoji">📝</span> Aufgabe lösen: Text</div>
+        <div class="card-desc">Textfeld zum Schreiben. Vor dem Abgeben: KI-Check auf Rechtschreibung & Grammatik mit Verbesserungsvorschlägen.</div>
+        <div class="card-tags"><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card student">
+        <div class="card-title"><span class="emoji">📸</span> Aufgabe lösen: Bild</div>
+        <div class="card-desc">Foto aufnehmen oder Bild hochladen (z.B. Arbeitsblatt abfotografieren). Einfache Beschriftungsfunktion.</div>
+        <div class="card-tags"><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card student">
+        <div class="card-title"><span class="emoji">🧩</span> Aufgabe lösen: Quiz</div>
+        <div class="card-desc">Multiple-Choice-Fragen beantworten. Sofortiges Ergebnis mit Erklärungen. Bei KI-Quiz: Fragen aus dem Dossier.</div>
+        <div class="card-tags"><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card student">
+        <div class="card-title"><span class="emoji">💬</span> Feedback ansehen</div>
+        <div class="card-desc">LP-Feedback und KI-Feedback lesen. Aufgabe nochmals bearbeiten und erneut abgeben.</div>
+        <div class="card-tags"><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card student">
+        <div class="card-title"><span class="emoji">📈</span> Mein Fortschritt</div>
+        <div class="card-desc">Übersicht: Wie viele Aufgaben erledigt? Welche Themen stark/schwach? Visualisierung als Diagramm.</div>
+        <div class="card-tags"><span class="tag">PHASE 2</span></div>
+      </div>
+      <div class="card student">
+        <div class="card-title"><span class="emoji">📅</span> Mein Kalender</div>
+        <div class="card-desc">Wochenübersicht: Aufgaben selbst einplanen, Prüfungstermine sehen, Erinnerungen.</div>
+        <div class="card-tags"><span class="tag">PHASE 2</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: KI-Funktionen -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--ai-bg); color:var(--ai);">🤖</div>
+      <h2>KI-Funktionen</h2>
+      <span class="section-desc">AI ENGINE</span>
+    </div>
+    <div class="cards">
+      <div class="card ai">
+        <div class="card-title"><span class="emoji">📄</span> Dossier → Quiz-Generator</div>
+        <div class="card-desc">LP lädt ein PDF/Dossier hoch. KI analysiert den Inhalt und generiert automatisch Prüfungsfragen (MC, Lückentext, offene Fragen). Niveau und Anzahl wählbar.</div>
+        <div class="card-tags"><span class="tag priority">PRIORITÄT</span><span class="tag mvp">MVP</span><span class="tag">deine bestehende App</span></div>
+      </div>
+      <div class="card ai">
+        <div class="card-title"><span class="emoji">✍️</span> Text-Feedback</div>
+        <div class="card-desc">SuS geben einen Text ab → KI gibt sofort altersgerechtes Feedback zu Rechtschreibung, Grammatik und Inhalt. LP kann das Feedback anpassen.</div>
+        <div class="card-tags"><span class="tag priority">PRIORITÄT</span><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card ai">
+        <div class="card-title"><span class="emoji">📊</span> Lernstand-Analyse</div>
+        <div class="card-desc">KI fasst für die LP zusammen: «Diese SuS haben Schwierigkeiten mit Thema X. Empfehlung: Zusatzübung Y bereitstellen.»</div>
+        <div class="card-tags"><span class="tag">PHASE 2</span></div>
+      </div>
+      <div class="card ai">
+        <div class="card-title"><span class="emoji">🎯</span> Adaptive Aufgabenvorschläge</div>
+        <div class="card-desc">Basierend auf Ergebnissen schlägt die KI dem Kind passende Aufgaben vor – leichtere bei Schwächen, schwierigere bei Stärken.</div>
+        <div class="card-tags"><span class="tag">PHASE 3</span></div>
+      </div>
+      <div class="card ai">
+        <div class="card-title"><span class="emoji">🔄</span> Aufgaben-Generator</div>
+        <div class="card-desc">LP beschreibt ein Thema und Niveau → KI erstellt fertige Aufgaben inkl. Lösungen. LP prüft und veröffentlicht.</div>
+        <div class="card-tags"><span class="tag">PHASE 2</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 5: Shared / System -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:var(--shared-bg); color:var(--shared);">⚙️</div>
+      <h2>System & Einstellungen</h2>
+      <span class="section-desc">SYSTEM</span>
+    </div>
+    <div class="cards">
+      <div class="card shared">
+        <div class="card-title"><span class="emoji">👤</span> Profil & Einstellungen</div>
+        <div class="card-desc">Name, Profilbild/Avatar, Passwort ändern, Benachrichtigungen konfigurieren.</div>
+        <div class="card-tags"><span class="tag mvp">MVP</span></div>
+      </div>
+      <div class="card shared">
+        <div class="card-title"><span class="emoji">🔔</span> Benachrichtigungen</div>
+        <div class="card-desc">SuS: Neue Aufgabe, Feedback erhalten. LP: Neue Abgabe, KI-Zusammenfassung. Push & In-App.</div>
+        <div class="card-tags"><span class="tag">PHASE 2</span></div>
+      </div>
+      <div class="card shared">
+        <div class="card-title"><span class="emoji">💬</span> Chat / Nachrichten</div>
+        <div class="card-desc">Einfacher Chat zwischen LP und SuS (einzeln oder Klasse). Für Rückfragen zu Aufgaben.</div>
+        <div class="card-tags"><span class="tag">PHASE 2</span></div>
+      </div>
+      <div class="card shared">
+        <div class="card-title"><span class="emoji">❓</span> Hilfe & Onboarding</div>
+        <div class="card-desc">Interaktive Einführung für neue LP und SuS. Tooltips, kurze Erklärvideos, FAQ.</div>
+        <div class="card-tags"><span class="tag">PHASE 2</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Phasenplanung -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:rgba(108,92,231,0.1); color:var(--accent-light);">🗺️</div>
+      <h2>Entwicklungsphasen</h2>
+      <span class="section-desc">ROADMAP</span>
+    </div>
+    <div class="phase-grid">
+      <div class="phase-card">
+        <div class="phase-badge p1">PHASE 1 — MVP</div>
+        <h3>Kern-Plattform</h3>
+        <p>Das Minimum für den Einsatz im Unterricht.</p>
+        <ul class="phase-list">
+          <li>Login (LP per Mail, SuS per Code)</li>
+          <li>Kurse & Themen erstellen</li>
+          <li>4 Aufgabentypen (Text, Bild, MC, KI-Quiz)</li>
+          <li>SuS lösen & geben ab</li>
+          <li>Arbeitsstand-Übersicht</li>
+          <li>KI-Feedback auf Texte</li>
+          <li>Dossier → Quiz (deine bestehende App)</li>
+          <li>Einfaches LP-Feedback</li>
+        </ul>
+      </div>
+      <div class="phase-card">
+        <div class="phase-badge p2">PHASE 2 — Ausbau</div>
+        <h3>Differenzierung & Komfort</h3>
+        <p>Mehr Funktionen für den Alltag.</p>
+        <ul class="phase-list">
+          <li>Kalender & Wochenplanung</li>
+          <li>Fortschrittsvisualisierung für SuS</li>
+          <li>KI-Lernstand-Analyse für LP</li>
+          <li>KI-Aufgaben-Generator</li>
+          <li>Material teilen zwischen LP</li>
+          <li>Chat / Nachrichten</li>
+          <li>Benachrichtigungen</li>
+          <li>Hilfe & Onboarding</li>
+        </ul>
+      </div>
+      <div class="phase-card">
+        <div class="phase-badge p3">PHASE 3 — Vision</div>
+        <h3>KI-gestütztes Lernen</h3>
+        <p>Das volle Potenzial der KI-Integration.</p>
+        <ul class="phase-list">
+          <li>Adaptive Aufgabenvorschläge</li>
+          <li>Schulverwaltung & Admin</li>
+          <li>Eltern-Zugang (Lesemodus)</li>
+          <li>LP21-Kompetenzverknüpfung</li>
+          <li>Material-Bibliothek (schulübergreifend)</li>
+          <li>Portfolios</li>
+          <li>API / Schnittstellen</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    <strong>SmartLearn</strong> — Konzept-Sitemap v1.0 · Sascha · Februar 2026<br>
+    Basierend auf LearningView-Analyse + KI-Erweiterungen
+  </div>
+
+</div>
+</body>
+</html>

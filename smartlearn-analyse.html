@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmartLearn – Kritische Analyse</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root {
+  --bg: #0d1117;
+  --card: #161b22;
+  --card-hover: #1c2128;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text-muted: #8b949e;
+  --text-light: #6e7681;
+  --green: #3fb950;
+  --green-bg: rgba(63,185,80,0.1);
+  --red: #f85149;
+  --red-bg: rgba(248,81,73,0.1);
+  --yellow: #d29922;
+  --yellow-bg: rgba(210,153,34,0.1);
+  --blue: #58a6ff;
+  --blue-bg: rgba(88,166,255,0.1);
+  --purple: #a371f7;
+  --purple-bg: rgba(163,113,247,0.1);
+  --radius: 8px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { 
+  font-family: 'IBM Plex Sans', sans-serif; 
+  background: var(--bg); 
+  color: var(--text);
+  line-height: 1.6;
+  padding: 40px 24px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.subtitle {
+  color: var(--text-muted);
+  font-size: 16px;
+  margin-bottom: 40px;
+}
+
+h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 40px 0 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 24px 0 12px;
+  color: var(--text);
+}
+
+/* Comparison Table */
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 14px;
+}
+.comparison-table th,
+.comparison-table td {
+  padding: 14px 16px;
+  text-align: left;
+  border: 1px solid var(--border);
+}
+.comparison-table th {
+  background: var(--card);
+  font-weight: 600;
+  font-size: 13px;
+}
+.comparison-table tr:hover td {
+  background: var(--card-hover);
+}
+.comparison-table .feature {
+  font-weight: 500;
+  min-width: 200px;
+}
+.comparison-table .lv { background: rgba(63,185,80,0.05); }
+.comparison-table .sl { background: rgba(88,166,255,0.05); }
+
+/* Status badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.badge.yes { background: var(--green-bg); color: var(--green); }
+.badge.no { background: var(--red-bg); color: var(--red); }
+.badge.partial { background: var(--yellow-bg); color: var(--yellow); }
+.badge.planned { background: var(--blue-bg); color: var(--blue); }
+.badge.unique { background: var(--purple-bg); color: var(--purple); }
+
+/* Issue cards */
+.issues-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+.issue-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  border-left: 3px solid var(--red);
+}
+.issue-card.warning {
+  border-left-color: var(--yellow);
+}
+.issue-card.info {
+  border-left-color: var(--blue);
+}
+.issue-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.issue-desc {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.issue-impact {
+  font-size: 12px;
+  color: var(--text-light);
+  padding: 8px 12px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 6px;
+}
+.issue-impact strong {
+  color: var(--text-muted);
+}
+
+/* Recommendation cards */
+.reco-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin: 20px 0;
+}
+.reco-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.reco-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+.reco-card.critical::before { background: var(--red); }
+.reco-card.important::before { background: var(--yellow); }
+.reco-card.nice::before { background: var(--green); }
+
+.reco-priority {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+.reco-card.critical .reco-priority { color: var(--red); }
+.reco-card.important .reco-priority { color: var(--yellow); }
+.reco-card.nice .reco-priority { color: var(--green); }
+
+.reco-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 8px;
+}
+.reco-desc {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+.reco-effort {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-light);
+}
+.reco-effort span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Score meter */
+.score-section {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin: 20px 0;
+}
+.score-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+  text-align: center;
+}
+.score-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.score-value {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1;
+}
+.score-value.good { color: var(--green); }
+.score-value.medium { color: var(--yellow); }
+.score-value.low { color: var(--red); }
+.score-bar {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  margin-top: 12px;
+  overflow: hidden;
+}
+.score-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+/* Summary box */
+.summary-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  margin: 24px 0;
+}
+.summary-title {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.summary-list {
+  list-style: none;
+}
+.summary-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 14px;
+}
+.summary-list li:last-child {
+  border-bottom: none;
+}
+.summary-icon {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+}
+
+/* Code/mono */
+code {
+  font-family: 'IBM Plex Mono', monospace;
+  background: rgba(110,118,129,0.2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .score-section { grid-template-columns: repeat(2, 1fr); }
+  .comparison-table { font-size: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>🔍 SmartLearn – Kritische Analyse</h1>
+<p class="subtitle">Vergleich mit LearningView und konkrete Verbesserungsvorschläge für die Weiterentwicklung</p>
+
+<!-- SCORES -->
+<div class="score-section">
+  <div class="score-card">
+    <div class="score-label">Feature-Parität mit LV</div>
+    <div class="score-value medium">42%</div>
+    <div class="score-bar"><div class="score-fill" style="width: 42%; background: var(--yellow);"></div></div>
+  </div>
+  <div class="score-card">
+    <div class="score-label">KI-Innovation</div>
+    <div class="score-value good">95%</div>
+    <div class="score-bar"><div class="score-fill" style="width: 95%; background: var(--green);"></div></div>
+  </div>
+  <div class="score-card">
+    <div class="score-label">Praxistauglichkeit</div>
+    <div class="score-value medium">55%</div>
+    <div class="score-bar"><div class="score-fill" style="width: 55%; background: var(--yellow);"></div></div>
+  </div>
+  <div class="score-card">
+    <div class="score-label">LP21-Integration</div>
+    <div class="score-value low">30%</div>
+    <div class="score-bar"><div class="score-fill" style="width: 30%; background: var(--red);"></div></div>
+  </div>
+</div>
+
+<!-- FEATURE COMPARISON -->
+<h2>📊 Feature-Vergleich: SmartLearn vs. LearningView</h2>
+
+<table class="comparison-table">
+  <thead>
+    <tr>
+      <th>Feature</th>
+      <th class="lv">LearningView</th>
+      <th class="sl">SmartLearn</th>
+      <th>Bewertung</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="feature">Hierarchie-Struktur</td>
+      <td>4 Ebenen (Lernbereich → Einheit → Thema → Aufgabe)</td>
+      <td>3 Ebenen (Kurs → Thema → Aufgabe)</td>
+      <td><span class="badge yes">✓ Bewusst vereinfacht</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Aufgabentypen</td>
+      <td>Buch, Arbeitsheft, Arbeitsblatt, Weblink, Selbsttest, Umfrage, Sammlung</td>
+      <td>Textantwort, Bild-Upload, Multiple-Choice, KI-Quiz</td>
+      <td><span class="badge partial">⚠️ Weniger Vielfalt</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Korrekturformen</td>
+      <td>Selbstkorrektur, Peer-Feedback, LP-Korrektur, Keine</td>
+      <td>KI-Feedback, LP-Korrektur</td>
+      <td><span class="badge partial">⚠️ Peer fehlt</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Abgabeformen</td>
+      <td>Foto, Audio, Video, Datei, Text, Bild beschriften</td>
+      <td>Text, Bild-Upload</td>
+      <td><span class="badge no">✗ Audio/Video fehlt</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Arbeitsstand-Übersicht</td>
+      <td>Matrix mit Farbcodes, Filteroptionen</td>
+      <td>Tabellarische Ansicht mit Tracking</td>
+      <td><span class="badge yes">✓ Mit erweiterten Metriken</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Portfolio/Lernjournal</td>
+      <td>Ja, mit Dokumentation über Zeit</td>
+      <td>Nein (nicht geplant)</td>
+      <td><span class="badge no">✗ Fehlt komplett</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Kalender/Wochenplan</td>
+      <td>Ja, inkl. Adventskalender</td>
+      <td>Nein</td>
+      <td><span class="badge planned">Phase 3?</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Chat/Kommunikation</td>
+      <td>Integrierter Klassenchat</td>
+      <td>Nur Feedback-Kommentare</td>
+      <td><span class="badge partial">⚠️ Eingeschränkt</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Gruppenarbeit/Sozialform</td>
+      <td>EA, PA, GA mit Gruppeneinteiler</td>
+      <td>Nur Einzelarbeit</td>
+      <td><span class="badge no">✗ Fehlt</span></td>
+    </tr>
+    <tr>
+      <td class="feature">KI-Feedback</td>
+      <td>Nein</td>
+      <td>Ja, automatisch & anpassbar</td>
+      <td><span class="badge unique">★ Alleinstellung</span></td>
+    </tr>
+    <tr>
+      <td class="feature">KI-Quiz aus Dossier</td>
+      <td>Nein</td>
+      <td>Ja</td>
+      <td><span class="badge unique">★ Alleinstellung</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Prompt-Bibliothek</td>
+      <td>Nein</td>
+      <td>Ja (Phase 2)</td>
+      <td><span class="badge unique">★ Alleinstellung</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Lern-Tracking/Analytics</td>
+      <td>Basis (Erledigt/Nicht erledigt)</td>
+      <td>Erweitert (Zeit, Feedback-Lesen, Verbesserungen)</td>
+      <td><span class="badge unique">★ Alleinstellung</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Export-Funktionen</td>
+      <td>Excel für Selbsttests</td>
+      <td>PDF, Excel, JSON, LV-Import</td>
+      <td><span class="badge yes">✓ Umfangreicher</span></td>
+    </tr>
+    <tr>
+      <td class="feature">LP21-Kompetenzverknüpfung</td>
+      <td>Ja, Lernziele zuweisbar</td>
+      <td>Erwähnt, aber nicht implementiert</td>
+      <td><span class="badge no">✗ Fehlt</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Differenzierung/Niveaus</td>
+      <td>Farben, Icons, Zusatz-Icons, Niveau-Tag</td>
+      <td>Nicht spezifiziert</td>
+      <td><span class="badge no">✗ Fehlt</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Barrierefreiheit</td>
+      <td>WCAG-Prüfung, Audio für Aufgaben</td>
+      <td>Nicht adressiert</td>
+      <td><span class="badge no">✗ Kritisch</span></td>
+    </tr>
+    <tr>
+      <td class="feature">Externe Integrationen</td>
+      <td>zebis.digital, LearningApps</td>
+      <td>Keine</td>
+      <td><span class="badge planned">Phase 3?</span></td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- CRITICAL ISSUES -->
+<h2>🚨 Kritische Lücken</h2>
+
+<div class="issues-grid">
+  <div class="issue-card">
+    <div class="issue-title">🎤 Keine Audio/Video-Abgaben</div>
+    <div class="issue-desc">
+      LearningView ermöglicht Audio- und Video-Aufnahmen direkt in der App. SmartLearn beschränkt sich auf Text und Bilder.
+    </div>
+    <div class="issue-impact">
+      <strong>Impact:</strong> Schliesst mündliche Übungen, Sprachaufnahmen, Präsentationen und Erklärvideos aus. Besonders problematisch für Sprach- und Musikunterricht.
+    </div>
+  </div>
+
+  <div class="issue-card">
+    <div class="issue-title">👥 Keine Gruppenarbeit</div>
+    <div class="issue-desc">
+      Sozialformen (EA/PA/GA) und Gruppeneinteiler fehlen komplett. Alle Aufgaben sind implizit Einzelarbeit.
+    </div>
+    <div class="issue-impact">
+      <strong>Impact:</strong> Kooperatives Lernen nicht abbildbar. Lehrplan 21 fordert explizit überfachliche Kompetenzen wie Teamarbeit.
+    </div>
+  </div>
+
+  <div class="issue-card">
+    <div class="issue-title">📋 Kein Portfolio/Lernjournal</div>
+    <div class="issue-desc">
+      LearningView bietet Portfolios für längerfristige Dokumentation. SmartLearn fokussiert auf Einzelaufgaben.
+    </div>
+    <div class="issue-impact">
+      <strong>Impact:</strong> Lernprozesse über Zeit nicht dokumentierbar. Beurteilungsgespräche schwieriger zu führen.
+    </div>
+  </div>
+
+  <div class="issue-card">
+    <div class="issue-title">🎯 LP21-Integration fehlt</div>
+    <div class="issue-desc">
+      LP21-Kompetenzen werden erwähnt, aber es gibt keinen Mechanismus zur Verknüpfung oder Auswertung.
+    </div>
+    <div class="issue-impact">
+      <strong>Impact:</strong> Kompetenzbasierte Beurteilung nicht möglich. Erschwert Akzeptanz bei Schulleitungen.
+    </div>
+  </div>
+
+  <div class="issue-card warning">
+    <div class="issue-title">🔗 Peer-Feedback fehlt</div>
+    <div class="issue-desc">
+      LearningView ermöglicht Korrektur durch Mitschüler:innen. SmartLearn hat nur KI und LP.
+    </div>
+    <div class="issue-impact">
+      <strong>Impact:</strong> Wertvolles pädagogisches Instrument fehlt. SuS lernen durch Feedback-Geben.
+    </div>
+  </div>
+
+  <div class="issue-card warning">
+    <div class="issue-title">♿ Barrierefreiheit unklar</div>
+    <div class="issue-desc">
+      LearningView hat WCAG-Prüfung und Audio-Beschreibungen. SmartLearn adressiert Accessibility nicht.
+    </div>
+    <div class="issue-impact">
+      <strong>Impact:</strong> Rechtliche Risiken, Ausschluss von SuS mit Beeinträchtigungen.
+    </div>
+  </div>
+</div>
+
+<!-- STRENGTHS -->
+<h2>💪 SmartLearn's echte Stärken</h2>
+
+<div class="summary-box">
+  <div class="summary-title">🌟 Wo SmartLearn LearningView übertrifft</div>
+  <ul class="summary-list">
+    <li>
+      <span class="summary-icon">🤖</span>
+      <div><strong>KI-Feedback:</strong> Automatisches, anpassbares Feedback spart LP massiv Zeit. LearningView hat hier nichts Vergleichbares.</div>
+    </li>
+    <li>
+      <span class="summary-icon">📊</span>
+      <div><strong>Erweitertes Tracking:</strong> Bearbeitungszeit, Feedback-Lesequote, Verbesserungsrate – das gibt echte pädagogische Insights.</div>
+    </li>
+    <li>
+      <span class="summary-icon">📚</span>
+      <div><strong>Dossier→Quiz-Generator:</strong> Aus bestehendem Material automatisch Quizze erstellen – Game-Changer für Vorbereitung.</div>
+    </li>
+    <li>
+      <span class="summary-icon">🎯</span>
+      <div><strong>Prompt-Bibliothek:</strong> Wiederverwendbare, teilbare KI-Prompts mit Community-Aspekt – innovativ.</div>
+    </li>
+    <li>
+      <span class="summary-icon">📤</span>
+      <div><strong>Umfassender Export:</strong> PDF-Berichte für Elterngespräche, LV-Import, JSON/API – professioneller als LV.</div>
+    </li>
+  </ul>
+</div>
+
+<!-- RECOMMENDATIONS -->
+<h2>💡 Konkrete Verbesserungsvorschläge</h2>
+
+<h3>Phase 1 – Kritisch (vor Launch)</h3>
+<div class="reco-grid">
+  <div class="reco-card critical">
+    <div class="reco-priority">Priorität: Kritisch</div>
+    <div class="reco-title">Audio-Aufnahmen als Abgabeform</div>
+    <div class="reco-desc">
+      Mindestens Audio-Aufnahmen ermöglichen. Wichtig für: Vorlesen üben, mündliche Erklärungen, Sprachunterricht, Musik.
+    </div>
+    <div class="reco-effort">
+      <span>⏱️ 2-3 Tage</span>
+      <span>💥 Hoch</span>
+    </div>
+  </div>
+
+  <div class="reco-card critical">
+    <div class="reco-priority">Priorität: Kritisch</div>
+    <div class="reco-title">Sozialform-Feld hinzufügen</div>
+    <div class="reco-desc">
+      Einfaches Dropdown: Einzelarbeit / Partnerarbeit / Gruppenarbeit. Zeigt SuS, wie sie arbeiten sollen.
+    </div>
+    <div class="reco-effort">
+      <span>⏱️ 1 Tag</span>
+      <span>💥 Mittel</span>
+    </div>
+  </div>
+
+  <div class="reco-card critical">
+    <div class="reco-priority">Priorität: Kritisch</div>
+    <div class="reco-title">Differenzierungs-System</div>
+    <div class="reco-desc">
+      Niveau-Tags (Basis/Erweitert/Knobel) und Farb-/Icon-System wie LearningView. Essentiell für heterogene Klassen.
+    </div>
+    <div class="reco-effort">
+      <span>⏱️ 2 Tage</span>
+      <span>💥 Hoch</span>
+    </div>
+  </div>
+</div>
+
+<h3>Phase 2 – Wichtig (nach Launch)</h3>
+<div class="reco-grid">
+  <div class="reco-card important">
+    <div class="reco-priority">Priorität: Wichtig</div>
+    <div class="reco-title">LP21-Kompetenz-Picker</div>
+    <div class="reco-desc">
+      Durchsuchbare Liste der LP21-Kompetenzen. LP kann Aufgaben taggen. Ermöglicht kompetenzbasierte Auswertungen.
+    </div>
+    <div class="reco-effort">
+      <span>⏱️ 3-5 Tage</span>
+      <span>💥 Hoch</span>
+    </div>
+  </div>
+
+  <div class="reco-card important">
+    <div class="reco-priority">Priorität: Wichtig</div>
+    <div class="reco-title">Peer-Feedback-Option</div>
+    <div class="reco-desc">
+      Korrekturform: "Peer-Review" – SuS geben sich gegenseitig Feedback, bevor LP sieht.
+    </div>
+    <div class="reco-effort">
+      <span>⏱️ 3 Tage</span>
+      <span>💥 Mittel</span>
+    </div>
+  </div>
+
+  <div class="reco-card important">
+    <div class="reco-priority">Priorität: Wichtig</div>
+    <div class="reco-title">"Arbeitsblatt beschriften"-Modus</div>
+    <div class="reco-desc">
+      PDF/Bild hochladen, SuS können direkt darauf schreiben. LearningView's beliebteste Funktion.
+    </div>
+    <div class="reco-effort">
+      <span>⏱️ 4-5 Tage</span>
+      <span>💥 Hoch</span>
+    </div>
+  </div>
+
+  <div class="reco-card important">
+    <div class="reco-priority">Priorität: Wichtig</div>
+    <div class="reco-title">Video-Abgaben</div>
+    <div class="reco-desc">
+      Kurze Video-Aufnahmen für Präsentationen, Erklärungen, Projekte.
+    </div>
+    <div class="reco-effort">
+      <span>⏱️ 3 Tage</span>
+      <span>💥 Mittel</span>
+    </div>
+  </div>
+</div>
+
+<h3>Phase 3 – Nice-to-have</h3>
+<div class="reco-grid">
+  <div class="reco-card nice">
+    <div class="reco-priority">Priorität: Nice-to-have</div>
+    <div class="reco-title">Einfaches Portfolio</div>
+    <div class="reco-desc">
+      Sammlung von Arbeiten über Zeit. Für Beurteilungsgespräche und Selbstreflexion.
+    </div>
+    <div class="reco-effort">
+      <span>⏱️ 5-7 Tage</span>
+      <span>💥 Mittel</span>
+    </div>
+  </div>
+
+  <div class="reco-card nice">
+    <div class="reco-priority">Priorität: Nice-to-have</div>
+    <div class="reco-title">Wochenplan-Ansicht</div>
+    <div class="reco-desc">
+      Kalenderartige Darstellung: Welche Aufgaben bis wann? Hilft SuS bei der Planung.
+    </div>
+    <div class="reco-effort">
+      <span>⏱️ 4 Tage</span>
+      <span>💥 Mittel</span>
+    </div>
+  </div>
+
+  <div class="reco-card nice">
+    <div class="reco-priority">Priorität: Nice-to-have</div>
+    <div class="reco-title">LearningApps-Integration</div>
+    <div class="reco-desc">
+      Embed von learningapps.org direkt in Aufgaben. Riesige Bibliothek an interaktiven Übungen.
+    </div>
+    <div class="reco-effort">
+      <span>⏱️ 2 Tage</span>
+      <span>💥 Niedrig</span>
+    </div>
+  </div>
+</div>
+
+<!-- STRATEGIC SUMMARY -->
+<h2>🎯 Strategische Empfehlung</h2>
+
+<div class="summary-box" style="border-left: 4px solid var(--purple);">
+  <div class="summary-title">📌 Fazit: Fokus auf KI-Differenzierung</div>
+  <ul class="summary-list">
+    <li>
+      <span class="summary-icon">1️⃣</span>
+      <div><strong>Nicht versuchen, LearningView 1:1 zu kopieren.</strong> Sie haben 8 Jahre Vorsprung und 110'000 Nutzer. Du gewinnst nicht auf ihrem Terrain.</div>
+    </li>
+    <li>
+      <span class="summary-icon">2️⃣</span>
+      <div><strong>Positioniere SmartLearn als "KI-Erweiterung".</strong> Nicht Ersatz, sondern Ergänzung. LP nutzen LV für Organisation, SmartLearn für KI-Feedback.</div>
+    </li>
+    <li>
+      <span class="summary-icon">3️⃣</span>
+      <div><strong>LV-Export nutzen.</strong> Aufgaben aus SmartLearn in LearningView importierbar machen. Das senkt die Einstiegshürde massiv.</div>
+    </li>
+    <li>
+      <span class="summary-icon">4️⃣</span>
+      <div><strong>Basis-Features ergänzen.</strong> Audio, Sozialform, Differenzierung – ohne diese wird SmartLearn im Alltag nicht praktikabel.</div>
+    </li>
+    <li>
+      <span class="summary-icon">5️⃣</span>
+      <div><strong>KI-USPs ausbauen.</strong> Tracking, Prompt-Bibliothek, automatische Differenzierung (KI passt Schwierigkeit an) – hier bist du allein.</div>
+    </li>
+  </ul>
+</div>
+
+<div style="margin-top: 40px; padding: 24px; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border);">
+  <h3 style="margin-top: 0;">🚀 Quick Wins für sofortige Verbesserung</h3>
+  <ol style="margin: 16px 0 0 20px; color: var(--text-muted);">
+    <li style="margin-bottom: 8px;"><code>Sozialform-Dropdown</code> – 1 Tag Arbeit, sofort sichtbarer Mehrwert</li>
+    <li style="margin-bottom: 8px;"><code>Niveau-Tags</code> – 1 Tag, Differenzierung wird möglich</li>
+    <li style="margin-bottom: 8px;"><code>Audio-Aufnahme</code> – 2-3 Tage, erschliesst neue Fächer</li>
+    <li style="margin-bottom: 8px;"><code>LP21-Kompetenz-Dropdown</code> – 2 Tage, erhöht Glaubwürdigkeit</li>
+  </ol>
+</div>
+
+</div>
+</body>
+</html>
