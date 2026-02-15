@@ -5,9 +5,15 @@ const state = {
   tasks: [],
   selectedPromptId: null,
   exportType: 'pdf',
+  auth: {
+    user: null,
+    profile: null,
+    message: ''
+  },
   backend: {
     enabled: false,
     client: null,
+    auth: null,
     label: 'Lokal (localStorage)',
     error: ''
   }
@@ -102,6 +108,63 @@ function normalizeTask(task) {
   };
 }
 
+function roleLabel(role) {
+  if (role === 'teacher') return 'Lehrperson';
+  if (role === 'student') return 'Schüler:in';
+  if (role === 'picts') return 'PICTS';
+  return role || 'Unbekannt';
+}
+
+function setAuthMessage(message) {
+  state.auth.message = message || '';
+}
+
+async function upsertUserProfile(uid, profile) {
+  if (!state.backend.enabled || !state.backend.client) return;
+  await state.backend.client.collection('smartlearn_users').doc(uid).set({
+    role: profile.role || 'student',
+    name: profile.name || '',
+    email: profile.email || '',
+    created_at_iso: profile.created_at_iso || new Date().toISOString(),
+    updated_at_iso: new Date().toISOString()
+  }, { merge: true });
+}
+
+async function loadUserProfile(uid) {
+  if (!state.backend.enabled || !state.backend.client) return null;
+  const snap = await state.backend.client.collection('smartlearn_users').doc(uid).get();
+  return snap.exists ? (snap.data() || null) : null;
+}
+
+async function applyAuthUser(user) {
+  state.auth.user = user || null;
+
+  if (!user) {
+    state.auth.profile = null;
+    state.role = localStorage.getItem('smartlearn_role') || 'teacher';
+    await loadTasks();
+    render();
+    return;
+  }
+
+  let profile = await loadUserProfile(user.uid);
+  if (!profile) {
+    profile = {
+      role: 'student',
+      name: user.displayName || '',
+      email: user.email || '',
+      created_at_iso: new Date().toISOString()
+    };
+    await upsertUserProfile(user.uid, profile);
+  }
+
+  state.auth.profile = profile;
+  state.role = profile.role || 'student';
+  localStorage.setItem('smartlearn_role', state.role);
+  await loadTasks();
+  render();
+}
+
 async function initBackend() {
   const cfg = window.SMARTLEARN_CONFIG || {};
   const firebaseCfg = cfg.firebase || {};
@@ -119,8 +182,9 @@ async function initBackend() {
       ? window.firebase.app()
       : window.firebase.initializeApp(firebaseCfg);
     state.backend.client = app.firestore();
+    state.backend.auth = app.auth();
     state.backend.enabled = true;
-    state.backend.label = 'Firebase Firestore';
+    state.backend.label = 'Firebase (Firestore + Auth)';
   } catch (error) {
     state.backend.enabled = false;
     state.backend.error = error.message || 'Firebase Initialisierung fehlgeschlagen';
@@ -136,7 +200,14 @@ function normalizeDate(value) {
 }
 
 async function loadTasks() {
+  const uid = state.auth.user && state.auth.user.uid;
+
   if (!state.backend.enabled) {
+    state.tasks = loadLocalTasks().map(normalizeTask);
+    return;
+  }
+
+  if (!uid) {
     state.tasks = loadLocalTasks().map(normalizeTask);
     return;
   }
@@ -144,7 +215,7 @@ async function loadTasks() {
   try {
     const snapshot = await state.backend.client
       .collection('smartlearn_tasks')
-      .orderBy('created_at_iso', 'desc')
+      .where('owner_uid', '==', uid)
       .limit(150)
       .get();
 
@@ -155,7 +226,7 @@ async function loadTasks() {
         id: doc.id,
         created_at: normalizeDate(data.created_at_iso || data.created_at)
       });
-    });
+    }).sort((a, b) => b.created_at.localeCompare(a.created_at));
 
     if (!state.tasks.length) {
       state.tasks = loadLocalTasks().map(normalizeTask);
@@ -169,8 +240,16 @@ async function loadTasks() {
 
 async function createTask(task) {
   const normalized = normalizeTask(task);
+  const uid = state.auth.user && state.auth.user.uid;
 
   if (!state.backend.enabled) {
+    state.tasks.unshift(normalized);
+    saveLocalTasks(state.tasks);
+    return;
+  }
+
+  if (!uid) {
+    state.backend.error = 'Nicht angemeldet. Aufgabe lokal gespeichert.';
     state.tasks.unshift(normalized);
     saveLocalTasks(state.tasks);
     return;
@@ -183,6 +262,8 @@ async function createTask(task) {
       type: normalized.type,
       level: normalized.level,
       prompt: normalized.prompt,
+      owner_uid: uid,
+      owner_role: state.role,
       created_at_iso: normalized.created_at,
       created_at: window.firebase.firestore.FieldValue.serverTimestamp()
     };
@@ -222,15 +303,46 @@ function renderHeader() {
             <div class="brand-subtitle">Mehrseiten-App · Stand 15. Februar 2026 · Backend: ${esc(state.backend.label)}</div>
           </div>
         </div>
-        <div class="role-switch">
-          <button class="role-btn ${state.role === 'teacher' ? 'active' : ''}" data-role="teacher">Lehrperson</button>
-          <button class="role-btn ${state.role === 'student' ? 'active' : ''}" data-role="student">Schüler:in</button>
-          <button class="role-btn ${state.role === 'picts' ? 'active' : ''}" data-role="picts">PICTS</button>
-        </div>
+        ${state.auth.user ? `
+          <div class="auth-badge">
+            <span>${esc(state.auth.user.email || '')}</span>
+            <span class="badge info">${esc(roleLabel(state.role))}</span>
+            <button class="btn secondary" id="authLogoutBtn">Abmelden</button>
+          </div>
+        ` : `
+          <div class="role-switch">
+            <button class="role-btn ${state.role === 'teacher' ? 'active' : ''}" data-role="teacher">Lehrperson</button>
+            <button class="role-btn ${state.role === 'student' ? 'active' : ''}" data-role="student">Schüler:in</button>
+            <button class="role-btn ${state.role === 'picts' ? 'active' : ''}" data-role="picts">PICTS</button>
+          </div>
+        `}
       </div>
       <nav class="nav-tabs">
         ${nav.map(item => `<a class="nav-link ${item.id === PAGE ? 'active' : ''}" href="${item.href}">${item.label}</a>`).join('')}
       </nav>
+      ${state.backend.enabled && !state.auth.user ? `
+        <div class="auth-panel">
+          <form id="loginForm" class="auth-form">
+            <strong>Login</strong>
+            <input required type="email" name="email" placeholder="E-Mail">
+            <input required type="password" name="password" placeholder="Passwort">
+            <button class="btn primary" type="submit">Anmelden</button>
+          </form>
+          <form id="registerForm" class="auth-form">
+            <strong>Registrieren</strong>
+            <input required name="name" placeholder="Name">
+            <input required type="email" name="email" placeholder="E-Mail">
+            <input required type="password" name="password" placeholder="Passwort (min. 6 Zeichen)">
+            <select name="role">
+              <option value="student">Schüler:in</option>
+              <option value="teacher">Lehrperson</option>
+              <option value="picts">PICTS</option>
+            </select>
+            <button class="btn secondary" type="submit">Konto erstellen</button>
+          </form>
+        </div>
+      ` : ''}
+      ${state.auth.message ? `<p class="notice">${esc(state.auth.message)}</p>` : ''}
     </header>
   `;
 
@@ -241,6 +353,60 @@ function renderHeader() {
       render();
     });
   });
+
+  const logoutBtn = mount.querySelector('#authLogoutBtn');
+  if (logoutBtn && state.backend.auth) {
+    logoutBtn.addEventListener('click', async () => {
+      await state.backend.auth.signOut();
+      setAuthMessage('Abgemeldet.');
+    });
+  }
+
+  const loginForm = mount.querySelector('#loginForm');
+  if (loginForm && state.backend.auth) {
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(loginForm);
+      const email = String(fd.get('email') || '').trim();
+      const password = String(fd.get('password') || '');
+      try {
+        await state.backend.auth.signInWithEmailAndPassword(email, password);
+        setAuthMessage('Anmeldung erfolgreich.');
+      } catch (error) {
+        setAuthMessage(`Login fehlgeschlagen: ${error.message}`);
+        renderHeader();
+      }
+    });
+  }
+
+  const registerForm = mount.querySelector('#registerForm');
+  if (registerForm && state.backend.auth) {
+    registerForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fd = new FormData(registerForm);
+      const name = String(fd.get('name') || '').trim();
+      const email = String(fd.get('email') || '').trim();
+      const password = String(fd.get('password') || '');
+      const role = String(fd.get('role') || 'student');
+
+      try {
+        const cred = await state.backend.auth.createUserWithEmailAndPassword(email, password);
+        if (cred.user && name) {
+          await cred.user.updateProfile({ displayName: name });
+        }
+        await upsertUserProfile(cred.user.uid, {
+          name,
+          email,
+          role,
+          created_at_iso: new Date().toISOString()
+        });
+        setAuthMessage('Registrierung erfolgreich. Du bist jetzt angemeldet.');
+      } catch (error) {
+        setAuthMessage(`Registrierung fehlgeschlagen: ${error.message}`);
+        renderHeader();
+      }
+    });
+  }
 }
 
 function renderDashboard() {
@@ -690,8 +856,28 @@ function render() {
   renderPage();
 }
 
+async function initAuthListener() {
+  if (!state.backend.auth) return false;
+
+  await new Promise((resolve) => {
+    let firstEvent = true;
+    state.backend.auth.onAuthStateChanged(async (user) => {
+      await applyAuthUser(user);
+      if (firstEvent) {
+        firstEvent = false;
+        resolve();
+      }
+    });
+  });
+
+  return true;
+}
+
 (async function init() {
   await initBackend();
-  await loadTasks();
-  render();
+  const hasAuth = await initAuthListener();
+  if (!hasAuth) {
+    await loadTasks();
+    render();
+  }
 })();
