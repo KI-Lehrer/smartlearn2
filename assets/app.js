@@ -3,7 +3,9 @@ const PAGE = document.body.dataset.page;
 const state = {
   role: localStorage.getItem('smartlearn_role') || 'teacher',
   tasks: [],
+  studentAssignments: [],
   adminUsers: [],
+  importRows: [],
   selectedPromptId: null,
   exportType: 'pdf',
   auth: {
@@ -106,6 +108,7 @@ function normalizeTask(task) {
     subject: task.subject || 'Allgemein',
     type: task.type || 'Freitext',
     level: task.level || 'Standard',
+    class_id: task.class_id || '',
     prompt: task.prompt || '',
     created_at: task.created_at || new Date().toISOString()
   };
@@ -128,6 +131,37 @@ function getSuperAdminEmails() {
 function isSuperAdminEmail(email) {
   const normalized = String(email || '').trim().toLowerCase();
   return !!normalized && getSuperAdminEmails().includes(normalized);
+}
+
+function getFunctionsBaseUrl() {
+  const cfg = window.SMARTLEARN_CONFIG || {};
+  if (cfg.functionsBaseUrl) return String(cfg.functionsBaseUrl).trim().replace(/\/$/, '');
+  const projectId = cfg.firebase && cfg.firebase.projectId;
+  if (!projectId) return '';
+  return `https://us-central1-${projectId}.cloudfunctions.net`;
+}
+
+async function callCloudFunction(functionName, payload) {
+  const baseUrl = getFunctionsBaseUrl();
+  if (!baseUrl) throw new Error('functionsBaseUrl nicht konfiguriert');
+  if (!state.backend.auth || !state.auth.user) throw new Error('Bitte zuerst anmelden');
+
+  const token = await state.backend.auth.currentUser.getIdToken();
+  const response = await fetch(`${baseUrl}/${functionName}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(payload || {})
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.error) {
+    const message = data && data.error ? data.error : `HTTP ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
 }
 
 function setAuthMessage(message) {
@@ -157,6 +191,7 @@ async function applyAuthUser(user) {
   if (!user) {
     state.auth.profile = null;
     state.adminUsers = [];
+    state.studentAssignments = [];
     state.role = localStorage.getItem('smartlearn_role') || 'teacher';
     await loadTasks();
     render();
@@ -187,6 +222,7 @@ async function applyAuthUser(user) {
   state.role = profile.role || 'student';
   localStorage.setItem('smartlearn_role', state.role);
   await loadTasks();
+  await loadStudentAssignments();
   if (state.role === 'super_admin') {
     await loadAdminUsers();
   } else {
@@ -267,6 +303,65 @@ async function loadTasks() {
   }
 }
 
+async function loadStudentAssignments() {
+  const uid = state.auth.user && state.auth.user.uid;
+  state.studentAssignments = [];
+
+  if (!state.backend.enabled || !uid || state.role !== 'student') return;
+
+  try {
+    const db = state.backend.client;
+    const enrollmentSnap = await db
+      .collection('enrollments')
+      .where('user_uid', '==', uid)
+      .limit(50)
+      .get();
+
+    const classIds = enrollmentSnap.docs
+      .map((doc) => (doc.data() || {}).class_id)
+      .filter(Boolean);
+
+    const assignmentMap = new Map();
+
+    const directSnap = await db
+      .collection('task_assignments')
+      .where('target_type', '==', 'user')
+      .where('target_id', '==', uid)
+      .limit(120)
+      .get();
+
+    directSnap.docs.forEach((doc) => {
+      assignmentMap.set(doc.id, { id: doc.id, ...(doc.data() || {}) });
+    });
+
+    for (const classId of classIds) {
+      const classSnap = await db
+        .collection('task_assignments')
+        .where('target_type', '==', 'class')
+        .where('target_id', '==', classId)
+        .limit(120)
+        .get();
+      classSnap.docs.forEach((doc) => {
+        assignmentMap.set(doc.id, { id: doc.id, ...(doc.data() || {}) });
+      });
+    }
+
+    state.studentAssignments = Array.from(assignmentMap.values())
+      .map((item) => ({
+        id: item.id,
+        task_id: item.task_id || '',
+        task_title: item.task_title || 'Aufgabe',
+        class_id: item.class_id || '',
+        target_type: item.target_type || 'class',
+        created_at_iso: item.created_at_iso || ''
+      }))
+      .sort((a, b) => String(b.created_at_iso).localeCompare(String(a.created_at_iso)));
+  } catch (error) {
+    state.backend.error = error.message || 'Assignments konnten nicht geladen werden';
+    state.studentAssignments = [];
+  }
+}
+
 async function createTask(task) {
   const normalized = normalizeTask(task);
   const uid = state.auth.user && state.auth.user.uid;
@@ -290,6 +385,7 @@ async function createTask(task) {
       subject: normalized.subject,
       type: normalized.type,
       level: normalized.level,
+      class_id: normalized.class_id || '',
       prompt: normalized.prompt,
       owner_uid: uid,
       owner_role: state.role,
@@ -300,6 +396,19 @@ async function createTask(task) {
     const ref = await state.backend.client.collection('smartlearn_tasks').add(payload);
     const snap = await ref.get();
     const data = snap.data() || payload;
+
+    if (normalized.class_id) {
+      await state.backend.client.collection('task_assignments').add({
+        task_id: ref.id,
+        task_title: normalized.title,
+        class_id: normalized.class_id,
+        target_type: 'class',
+        target_id: normalized.class_id,
+        assigned_by_uid: uid,
+        created_at_iso: new Date().toISOString(),
+        created_at: window.firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
 
     state.tasks.unshift(normalizeTask({
       ...data,
@@ -370,20 +479,24 @@ async function deleteUserData(uid) {
 
   const db = state.backend.client;
 
-  // Delete all tasks owned by the target user in chunks.
-  while (true) {
-    const snap = await db
-      .collection('smartlearn_tasks')
-      .where('owner_uid', '==', uid)
-      .limit(250)
-      .get();
-
-    if (snap.empty) break;
-
-    const batch = db.batch();
-    snap.docs.forEach((doc) => batch.delete(doc.ref));
-    await batch.commit();
+  async function deleteByQuery(collection, field, value) {
+    while (true) {
+      const snap = await db
+        .collection(collection)
+        .where(field, '==', value)
+        .limit(250)
+        .get();
+      if (snap.empty) break;
+      const batch = db.batch();
+      snap.docs.forEach((doc) => batch.delete(doc.ref));
+      await batch.commit();
+    }
   }
+
+  await deleteByQuery('smartlearn_tasks', 'owner_uid', uid);
+  await deleteByQuery('enrollments', 'user_uid', uid);
+  await deleteByQuery('submissions', 'student_uid', uid);
+  await deleteByQuery('task_assignments', 'target_id', uid);
 
   await db.collection('smartlearn_users').doc(uid).delete();
   await loadAdminUsers();
@@ -623,16 +736,17 @@ function renderAufgaben() {
       <div class="grid cols-2">
         <article class="card">
           <h2>Aufgabe lösen</h2>
-          <p class="sub">Beispiel aus Wireframe: Aufgabe bearbeiten und KI-Feedback erhalten.</p>
+          <p class="sub">Deine zugewiesenen Aufgaben aus Klassen-Zuordnungen und direkter Zuweisung.</p>
           <label>Aufgabe</label>
           <select id="studentTask">
-            <option>tz/z-Übung (Quiz)</option>
-            <option>NMG Dossier-Quiz</option>
-            <option>Freitext: Erlebnisbericht</option>
+            ${renderStudentAssignmentOptions()}
           </select>
           <label style="margin-top:10px;">Deine Antwort</label>
           <textarea id="studentAnswer" placeholder="Schreibe hier deine Lösung..."></textarea>
-          <div class="actions"><button class="btn primary" id="getFeedbackBtn">KI-Feedback erhalten</button></div>
+          <div class="actions">
+            <button class="btn primary" id="getFeedbackBtn">KI-Feedback erhalten</button>
+            <button class="btn secondary" id="saveSubmissionBtn">Abgabe speichern</button>
+          </div>
           <div id="feedbackBox" class="item hidden" style="margin-top:10px;"></div>
         </article>
 
@@ -653,7 +767,7 @@ function renderAufgaben() {
     <div class="grid cols-2">
       <article class="card">
         <h2>Neue Aufgabe erstellen</h2>
-        <p class="sub">Freitext, Bild-Upload, Multiple-Choice, KI-Quiz aus Dossier.</p>
+        <p class="sub">Freitext, Bild-Upload, Multiple-Choice, KI-Quiz aus Dossier. Direkt einer Klasse zuordnen.</p>
         <form id="taskForm" class="form-grid">
           <div>
             <label>Titel</label>
@@ -684,6 +798,10 @@ function renderAufgaben() {
               <option>Standard</option>
               <option>Plus</option>
             </select>
+          </div>
+          <div>
+            <label>Klassen-ID (für Zuordnung)</label>
+            <input name="class_id" placeholder="z.B. 5A-2026" />
           </div>
           <div class="full">
             <label>Prompt pro Aufgabe (optional)</label>
@@ -725,9 +843,22 @@ function renderTaskItems() {
         <strong>${esc(t.title)}</strong>
         <span class="badge info">${esc(t.type)}</span>
       </div>
-      <div class="mono">Fach: ${esc(t.subject)} · Niveau: ${esc(t.level)} · Prompt: ${esc(t.prompt || 'kein Prompt')}</div>
+      <div class="mono">Fach: ${esc(t.subject)} · Niveau: ${esc(t.level)} · Klasse: ${esc(t.class_id || '-')} · Prompt: ${esc(t.prompt || 'kein Prompt')}</div>
     </div>
   `).join('');
+}
+
+function renderStudentAssignmentOptions() {
+  if (!state.studentAssignments.length) {
+    return '<option value="">Keine zugewiesenen Aufgaben</option>';
+  }
+
+  return state.studentAssignments.map((assignment) => {
+    const label = assignment.class_id
+      ? `${assignment.task_title} (Klasse ${assignment.class_id})`
+      : assignment.task_title;
+    return `<option value="${esc(assignment.task_id || assignment.id)}">${esc(label)}</option>`;
+  }).join('');
 }
 
 function renderPrompts() {
@@ -871,6 +1002,45 @@ function renderAdmin() {
     </div>
 
     <article class="card" style="margin-top:14px;">
+      <h2>Schüler-Import (Excel)</h2>
+      <p class="sub">Spalten: <span class="mono">name, mail, passwort</span>. Optional Klassen-ID setzen für automatische Zuordnung.</p>
+      <div class="form-grid">
+        <div class="full">
+          <label>Datei (.xlsx, .xls, .csv)</label>
+          <input id="studentImportFile" type="file" accept=\".xlsx,.xls,.csv\" />
+        </div>
+        <div>
+          <label>Klassen-ID</label>
+          <input id="studentImportClassId" placeholder=\"z.B. 5A-2026\" />
+        </div>
+        <div>
+          <label>Vorschau</label>
+          <div class="mono" id="studentImportCount">${state.importRows.length} Zeilen geladen</div>
+        </div>
+        <div class="full actions">
+          <button class="btn secondary" id="previewImportBtn">Datei lesen</button>
+          <button class="btn primary" id="runImportBtn">Import starten</button>
+        </div>
+      </div>
+      <div id="importPreviewTable">
+        ${state.importRows.length ? `
+          <table class="table">
+            <thead><tr><th>Name</th><th>E-Mail</th><th>Passwort</th></tr></thead>
+            <tbody>
+              ${state.importRows.slice(0, 20).map((row) => `
+                <tr>
+                  <td>${esc(row.name || '')}</td>
+                  <td>${esc(row.mail || '')}</td>
+                  <td>${esc(String(row.passwort || '') ? '***' : '')}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        ` : '<p class="notice">Noch keine Importdatei eingelesen.</p>'}
+      </div>
+    </article>
+
+    <article class="card" style="margin-top:14px;">
       <h2>Rollen setzen</h2>
       <p class="sub">Rolle pro Account anpassen. Eigene Super-Admin-Rolle kannst du hier auch ändern.</p>
       <table class="table">
@@ -906,9 +1076,41 @@ function renderAdmin() {
           `).join('')}
         </tbody>
       </table>
-      <p class="notice">Hinweis: Diese Aktion löscht smartlearn_users und alle smartlearn_tasks des Users. Den Auth-Account selbst löschst du in Firebase Authentication.</p>
+      <p class="notice">Hinweis: Diese Aktion löscht smartlearn_users, smartlearn_tasks, enrollments, submissions und direkte task_assignments des Users. Den Auth-Account selbst löschst du in Firebase Authentication.</p>
     </article>
   `;
+}
+
+async function readImportRowsFromFile(file) {
+  if (!file) return [];
+  if (!window.XLSX) throw new Error('XLSX-Library nicht geladen');
+
+  const buffer = await file.arrayBuffer();
+  const workbook = window.XLSX.read(buffer, { type: 'array' });
+  const firstSheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[firstSheetName];
+  const rows = window.XLSX.utils.sheet_to_json(sheet, { defval: '' });
+
+  return rows.map((row) => ({
+    name: String(row.name || row.Name || '').trim(),
+    mail: String(row.mail || row.email || row.Mail || row.Email || '').trim().toLowerCase(),
+    passwort: String(row.passwort || row.password || row.Passwort || row.Password || '').trim()
+  })).filter((row) => row.name && row.mail && row.passwort);
+}
+
+async function runStudentImport() {
+  if (state.role !== 'super_admin') throw new Error('Nur Super-Admin kann importieren');
+  if (!state.importRows.length) throw new Error('Keine Importzeilen vorhanden');
+
+  const classId = String((document.getElementById('studentImportClassId') || {}).value || '').trim();
+  const payload = {
+    classId,
+    students: state.importRows
+  };
+
+  const result = await callCloudFunction('importStudents', payload);
+  await loadAdminUsers();
+  return result;
 }
 
 function bindPageEvents() {
@@ -923,6 +1125,7 @@ function bindPageEvents() {
           subject: fd.get('subject') || 'Allgemein',
           type: fd.get('type') || 'Freitext',
           level: fd.get('level') || 'Standard',
+          class_id: String(fd.get('class_id') || '').trim(),
           prompt: fd.get('prompt') || ''
         });
         document.getElementById('taskList').innerHTML = renderTaskItems();
@@ -940,13 +1143,54 @@ function bindPageEvents() {
 
     const feedbackBtn = document.getElementById('getFeedbackBtn');
     if (feedbackBtn) {
-      feedbackBtn.addEventListener('click', () => {
+      feedbackBtn.addEventListener('click', async () => {
         const text = document.getElementById('studentAnswer').value.trim();
+        const taskId = document.getElementById('studentTask').value;
         const box = document.getElementById('feedbackBox');
         box.classList.remove('hidden');
-        box.innerHTML = text
-          ? '<strong>KI-Feedback</strong><div class="mono">Stark: klare Antwortstruktur. Verbesserung: Achte auf 2 Rechtschreibstellen und ergänze ein Beispiel aus dem Dossier.</div>'
-          : '<strong>Hinweis</strong><div class="mono">Bitte gib zuerst eine Antwort ein, damit die KI Feedback erzeugen kann.</div>';
+        if (!text) {
+          box.innerHTML = '<strong>Hinweis</strong><div class="mono">Bitte gib zuerst eine Antwort ein, damit die KI Feedback erzeugen kann.</div>';
+          return;
+        }
+        try {
+          const result = await callCloudFunction('generateFeedback', {
+            taskId,
+            answerText: text,
+            role: state.role
+          });
+          box.innerHTML = `<strong>KI-Feedback</strong><div class="mono">${esc(result.feedback || 'Kein Feedback erhalten.')}</div>`;
+        } catch (error) {
+          box.innerHTML = `<strong>KI-Feedback (Fallback)</strong><div class="mono">Stark: klare Antwortstruktur. Verbesserung: Achte auf Rechtschreibung und ergänze ein konkretes Beispiel.<br><br>Cloud-Funktion: ${esc(error.message)}</div>`;
+        }
+      });
+    }
+
+    const saveSubmissionBtn = document.getElementById('saveSubmissionBtn');
+    if (saveSubmissionBtn) {
+      saveSubmissionBtn.addEventListener('click', async () => {
+        if (!state.backend.enabled || !state.auth.user) return;
+        const answerText = String(document.getElementById('studentAnswer').value || '').trim();
+        const taskId = String(document.getElementById('studentTask').value || '').trim();
+        if (!answerText || !taskId) return;
+
+        const assignment = state.studentAssignments.find((a) => (a.task_id || a.id) === taskId);
+        const submission = {
+          task_id: taskId,
+          assignment_id: assignment ? assignment.id : '',
+          student_uid: state.auth.user.uid,
+          answer_text: answerText,
+          created_at_iso: new Date().toISOString(),
+          created_at: window.firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        try {
+          await state.backend.client.collection('submissions').add(submission);
+          setAuthMessage('Abgabe gespeichert.');
+          renderHeader();
+        } catch (error) {
+          setAuthMessage(`Abgabe konnte nicht gespeichert werden: ${error.message}`);
+          renderHeader();
+        }
       });
     }
   }
@@ -1063,6 +1307,39 @@ function bindPageEvents() {
         render();
       });
     });
+
+    const previewImportBtn = document.getElementById('previewImportBtn');
+    if (previewImportBtn) {
+      previewImportBtn.addEventListener('click', async () => {
+        const fileInput = document.getElementById('studentImportFile');
+        const file = fileInput && fileInput.files && fileInput.files[0];
+        try {
+          state.importRows = await readImportRowsFromFile(file);
+          setAuthMessage(`Import-Vorschau geladen: ${state.importRows.length} gültige Zeilen.`);
+        } catch (error) {
+          setAuthMessage(`Import-Datei konnte nicht gelesen werden: ${error.message}`);
+          state.importRows = [];
+        }
+        render();
+      });
+    }
+
+    const runImportBtn = document.getElementById('runImportBtn');
+    if (runImportBtn) {
+      runImportBtn.addEventListener('click', async () => {
+        try {
+          const result = await runStudentImport();
+          const created = Number(result.createdCount || 0);
+          const updated = Number(result.updatedCount || 0);
+          const failed = Number(result.failedCount || 0);
+          setAuthMessage(`Import abgeschlossen. Neu: ${created}, Aktualisiert: ${updated}, Fehler: ${failed}.`);
+          state.importRows = [];
+        } catch (error) {
+          setAuthMessage(`Import fehlgeschlagen: ${error.message}`);
+        }
+        render();
+      });
+    }
   }
 }
 
@@ -1107,6 +1384,7 @@ function renderPage() {
 }
 
 function guardPageByRole() {
+  if (PAGE === 'demo') return;
   const allowed = ALLOWED_BY_ROLE[state.role] || ALLOWED_BY_ROLE.teacher;
   if (!allowed.includes(PAGE)) {
     location.href = 'index.html';
