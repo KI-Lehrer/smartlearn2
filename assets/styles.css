@@ -152,6 +152,27 @@ body {
   font-size: 13px;
 }
 
+.demo-note {
+  border: 1px solid #f7d7bf;
+  background: #fff4ea;
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.demo-note strong {
+  display: block;
+  font-size: 13px;
+  color: #9a3412;
+  margin-bottom: 4px;
+}
+
+.demo-note p {
+  font-size: 12px;
+  color: #7c2d12;
+  line-height: 1.45;
+}
+
 main {
   margin-top: 16px;
 }

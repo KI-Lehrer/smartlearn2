@@ -451,7 +451,12 @@ function renderLoginPage() {
   return `
     <article class="card">
       <h1>Anmelden</h1>
-      <p class="sub">Bitte melde dich an, um SmartLearn zu nutzen. Dies ist eine Demo-Version (Pilotstand).</p>
+      <p class="sub">Bitte melde dich an, um SmartLearn zu nutzen.</p>
+      <div class="demo-note">
+        <strong>Hinweis zur Demo-Version</strong>
+        <p>Diese Instanz ist ein Pilot. Inhalte, Rollen und Funktionen können sich ohne Vorankündigung ändern.</p>
+        <p>Bitte keine sensiblen Personendaten eintragen. Verwende für Tests nur Demo- oder anonymisierte Daten.</p>
+      </div>
       <div class="auth-panel">
         <form id="loginForm" class="auth-form">
           <strong>Login</strong>
