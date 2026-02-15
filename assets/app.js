@@ -396,6 +396,7 @@ function renderHeader() {
 
   const allowed = ALLOWED_BY_ROLE[state.role] || ALLOWED_BY_ROLE.teacher;
   const nav = NAV_ITEMS.filter(item => allowed.includes(item.id));
+  const isLoggedIn = !!state.auth.user;
 
   mount.innerHTML = `
     <header class="topbar">
@@ -407,39 +408,22 @@ function renderHeader() {
             <div class="brand-subtitle">Mehrseiten-App · Stand 15. Februar 2026 · Backend: ${esc(state.backend.label)}</div>
           </div>
         </div>
-        ${state.auth.user ? `
+        ${isLoggedIn ? `
           <div class="auth-badge">
             <span>${esc(state.auth.user.email || '')}</span>
             <span class="badge info">${esc(roleLabel(state.role))}</span>
             <button class="btn secondary" id="authLogoutBtn">Abmelden</button>
           </div>
         ` : `
-          <div class="role-switch">
-            <button class="role-btn ${state.role === 'teacher' ? 'active' : ''}" data-role="teacher">Lehrperson</button>
-            <button class="role-btn ${state.role === 'student' ? 'active' : ''}" data-role="student">Schüler:in</button>
-            <button class="role-btn ${state.role === 'picts' ? 'active' : ''}" data-role="picts">PICTS</button>
+          <div class="auth-badge">
+            <span class="badge warn">Bitte anmelden</span>
           </div>
         `}
       </div>
-      <nav class="nav-tabs">
-        ${nav.map(item => `<a class="nav-link ${item.id === PAGE ? 'active' : ''}" href="${item.href}">${item.label}</a>`).join('')}
-      </nav>
-      ${state.backend.enabled && !state.auth.user ? `
-        <div class="auth-panel">
-          <form id="loginForm" class="auth-form">
-            <strong>Login</strong>
-            <input required type="email" name="email" placeholder="E-Mail">
-            <input required type="password" name="password" placeholder="Passwort">
-            <button class="btn primary" type="submit">Anmelden</button>
-          </form>
-          <form id="registerForm" class="auth-form">
-            <strong>Registrieren (immer Schüler:in)</strong>
-            <input required name="name" placeholder="Name">
-            <input required type="email" name="email" placeholder="E-Mail">
-            <input required type="password" name="password" placeholder="Passwort (min. 6 Zeichen)">
-            <button class="btn secondary" type="submit">Konto erstellen</button>
-          </form>
-        </div>
+      ${isLoggedIn ? `
+        <nav class="nav-tabs">
+          ${nav.map(item => `<a class="nav-link ${item.id === PAGE ? 'active' : ''}" href="${item.href}">${item.label}</a>`).join('')}
+        </nav>
       ` : ''}
       ${state.auth.message ? `<p class="notice">${esc(state.auth.message)}</p>` : ''}
     </header>
@@ -461,7 +445,35 @@ function renderHeader() {
     });
   }
 
-  const loginForm = mount.querySelector('#loginForm');
+}
+
+function renderLoginPage() {
+  return `
+    <article class="card">
+      <h1>Anmelden</h1>
+      <p class="sub">Bitte melde dich an, um SmartLearn zu nutzen. Dies ist eine Demo-Version (Pilotstand).</p>
+      <div class="auth-panel">
+        <form id="loginForm" class="auth-form">
+          <strong>Login</strong>
+          <input required type="email" name="email" placeholder="E-Mail">
+          <input required type="password" name="password" placeholder="Passwort">
+          <button class="btn primary" type="submit">Anmelden</button>
+        </form>
+        <form id="registerForm" class="auth-form">
+          <strong>Registrieren (immer Schüler:in)</strong>
+          <input required name="name" placeholder="Name">
+          <input required type="email" name="email" placeholder="E-Mail">
+          <input required type="password" name="password" placeholder="Passwort (min. 6 Zeichen)">
+          <button class="btn secondary" type="submit">Konto erstellen</button>
+        </form>
+      </div>
+      <p class="notice">Rollen (Lehrperson/PICTS/Super-Admin) werden durch die Admin-Seite vergeben.</p>
+    </article>
+  `;
+}
+
+function bindAuthForms() {
+  const loginForm = document.getElementById('loginForm');
   if (loginForm && state.backend.auth) {
     loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -473,12 +485,12 @@ function renderHeader() {
         setAuthMessage('Anmeldung erfolgreich.');
       } catch (error) {
         setAuthMessage(`Login fehlgeschlagen: ${error.message}`);
-        renderHeader();
+        render();
       }
     });
   }
 
-  const registerForm = mount.querySelector('#registerForm');
+  const registerForm = document.getElementById('registerForm');
   if (registerForm && state.backend.auth) {
     registerForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -486,7 +498,6 @@ function renderHeader() {
       const name = String(fd.get('name') || '').trim();
       const email = String(fd.get('email') || '').trim();
       const password = String(fd.get('password') || '');
-      const role = 'student';
 
       try {
         const cred = await state.backend.auth.createUserWithEmailAndPassword(email, password);
@@ -496,13 +507,13 @@ function renderHeader() {
         await upsertUserProfile(cred.user.uid, {
           name,
           email,
-          role,
+          role: 'student',
           created_at_iso: new Date().toISOString()
         });
         setAuthMessage('Registrierung erfolgreich. Du bist jetzt angemeldet.');
       } catch (error) {
         setAuthMessage(`Registrierung fehlgeschlagen: ${error.message}`);
-        renderHeader();
+        render();
       }
     });
   }
@@ -1044,6 +1055,12 @@ function updateSelectedPromptBox() {
 function renderPage() {
   const root = document.getElementById('page-root');
   if (!root) return;
+
+  if (state.backend.enabled && !state.auth.user) {
+    root.innerHTML = renderLoginPage();
+    bindAuthForms();
+    return;
+  }
 
   let html = '';
   if (PAGE === 'dashboard') html = renderDashboard();
