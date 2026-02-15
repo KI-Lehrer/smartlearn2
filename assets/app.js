@@ -473,7 +473,33 @@ function renderLoginPage() {
         </form>
       </div>
       <p class="notice">Rollen (Lehrperson/PICTS/Super-Admin) werden durch die Admin-Seite vergeben.</p>
+      <div class="actions">
+        <a class="btn secondary" href="demo.html">Demo-Seite ansehen</a>
+      </div>
     </article>
+  `;
+}
+
+function renderDemoPage() {
+  const prevRole = state.role;
+  state.role = 'teacher';
+  const preview = renderDashboard();
+  state.role = prevRole;
+
+  return `
+    <article class="card">
+      <h1>SmartLearn Demo</h1>
+      <p class="sub">Öffentliche Vorschau der Oberfläche ohne Login. Daten sind beispielhaft und nicht personalisiert.</p>
+      <div class="demo-note">
+        <strong>Demo-Hinweis</strong>
+        <p>Diese Ansicht dient nur zur Präsentation von Layout und Kernfunktionen.</p>
+        <p>Für echte Nutzung und Speicherung bitte über die Login-Seite anmelden.</p>
+      </div>
+      <div class="actions">
+        <a class="btn primary" href="index.html">Zur Anmeldung</a>
+      </div>
+    </article>
+    <div style="margin-top:14px;">${preview}</div>
   `;
 }
 
@@ -1061,13 +1087,14 @@ function renderPage() {
   const root = document.getElementById('page-root');
   if (!root) return;
 
-  if (state.backend.enabled && !state.auth.user) {
+  if (PAGE !== 'demo' && state.backend.enabled && !state.auth.user) {
     root.innerHTML = renderLoginPage();
     bindAuthForms();
     return;
   }
 
   let html = '';
+  if (PAGE === 'demo') html = renderDemoPage();
   if (PAGE === 'dashboard') html = renderDashboard();
   if (PAGE === 'aufgaben') html = renderAufgaben();
   if (PAGE === 'prompts') html = renderPrompts();
