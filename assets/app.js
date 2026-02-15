@@ -3,6 +3,7 @@ const PAGE = document.body.dataset.page;
 const state = {
   role: localStorage.getItem('smartlearn_role') || 'teacher',
   tasks: [],
+  adminUsers: [],
   selectedPromptId: null,
   exportType: 'pdf',
   auth: {
@@ -70,14 +71,15 @@ const NAV_ITEMS = [
   { id: 'aufgaben', label: 'Aufgaben', href: 'aufgaben.html' },
   { id: 'prompts', label: 'Prompt-Bibliothek', href: 'prompts.html' },
   { id: 'tracking', label: 'Tracking', href: 'tracking.html' },
-  { id: 'export', label: 'Export', href: 'export.html' }
+  { id: 'export', label: 'Export', href: 'export.html' },
+  { id: 'admin', label: 'Admin', href: 'admin.html' }
 ];
 
 const ALLOWED_BY_ROLE = {
   teacher: ['dashboard', 'aufgaben', 'prompts', 'tracking', 'export'],
   student: ['dashboard', 'aufgaben', 'prompts', 'tracking'],
   picts: ['dashboard', 'prompts', 'tracking', 'export'],
-  super_admin: ['dashboard', 'aufgaben', 'prompts', 'tracking', 'export']
+  super_admin: ['dashboard', 'aufgaben', 'prompts', 'tracking', 'export', 'admin']
 };
 
 function esc(value) {
@@ -154,6 +156,7 @@ async function applyAuthUser(user) {
 
   if (!user) {
     state.auth.profile = null;
+    state.adminUsers = [];
     state.role = localStorage.getItem('smartlearn_role') || 'teacher';
     await loadTasks();
     render();
@@ -184,6 +187,11 @@ async function applyAuthUser(user) {
   state.role = profile.role || 'student';
   localStorage.setItem('smartlearn_role', state.role);
   await loadTasks();
+  if (state.role === 'super_admin') {
+    await loadAdminUsers();
+  } else {
+    state.adminUsers = [];
+  }
   render();
 }
 
@@ -307,6 +315,55 @@ async function createTask(task) {
   }
 }
 
+async function loadAdminUsers() {
+  if (!state.backend.enabled || !state.backend.client || state.role !== 'super_admin') {
+    state.adminUsers = [];
+    return;
+  }
+
+  try {
+    const snapshot = await state.backend.client
+      .collection('smartlearn_users')
+      .limit(500)
+      .get();
+
+    state.adminUsers = snapshot.docs.map((doc) => {
+      const data = doc.data() || {};
+      return {
+        uid: doc.id,
+        email: data.email || '',
+        name: data.name || '',
+        role: data.role || 'student',
+        updated_at_iso: data.updated_at_iso || ''
+      };
+    }).sort((a, b) => a.email.localeCompare(b.email));
+  } catch (error) {
+    state.backend.error = error.message || 'User-Liste konnte nicht geladen werden';
+    state.adminUsers = [];
+  }
+}
+
+async function updateUserRole(uid, role) {
+  if (!state.backend.enabled || !state.backend.client || state.role !== 'super_admin') return;
+  const allowed = ['student', 'teacher', 'picts', 'super_admin'];
+  if (!allowed.includes(role)) return;
+
+  await state.backend.client.collection('smartlearn_users').doc(uid).set({
+    role,
+    updated_at_iso: new Date().toISOString()
+  }, { merge: true });
+
+  await loadAdminUsers();
+
+  if (state.auth.user && state.auth.user.uid === uid) {
+    state.role = role;
+    localStorage.setItem('smartlearn_role', role);
+    const profile = state.auth.profile || {};
+    state.auth.profile = { ...profile, role };
+    await loadTasks();
+  }
+}
+
 function renderHeader() {
   const mount = document.getElementById('app-header');
   if (!mount) return;
@@ -350,15 +407,10 @@ function renderHeader() {
             <button class="btn primary" type="submit">Anmelden</button>
           </form>
           <form id="registerForm" class="auth-form">
-            <strong>Registrieren</strong>
+            <strong>Registrieren (immer Schüler:in)</strong>
             <input required name="name" placeholder="Name">
             <input required type="email" name="email" placeholder="E-Mail">
             <input required type="password" name="password" placeholder="Passwort (min. 6 Zeichen)">
-            <select name="role">
-              <option value="student">Schüler:in</option>
-              <option value="teacher">Lehrperson</option>
-              <option value="picts">PICTS</option>
-            </select>
             <button class="btn secondary" type="submit">Konto erstellen</button>
           </form>
         </div>
@@ -408,7 +460,7 @@ function renderHeader() {
       const name = String(fd.get('name') || '').trim();
       const email = String(fd.get('email') || '').trim();
       const password = String(fd.get('password') || '');
-      const role = String(fd.get('role') || 'student');
+      const role = 'student';
 
       try {
         const cred = await state.backend.auth.createUserWithEmailAndPassword(email, password);
@@ -724,6 +776,66 @@ function renderExport() {
   `;
 }
 
+function renderAdmin() {
+  if (state.role !== 'super_admin') {
+    return '<article class="card"><h1>Zugriff gesperrt</h1><p class="sub">Nur Super-Admin kann diese Seite öffnen.</p></article>';
+  }
+
+  return `
+    <div class="grid cols-2">
+      <article class="card">
+        <h2>Benutzerverwaltung</h2>
+        <p class="sub">Alle neuen Registrierungen sind Schüler:innen. Rollenänderung nur hier als Super-Admin.</p>
+        <div class="actions">
+          <button class="btn secondary" id="adminRefreshUsers">Liste neu laden</button>
+        </div>
+      </article>
+      <article class="card">
+        <h2>Zusammenfassung</h2>
+        <p class="sub">Nutzer gesamt: ${state.adminUsers.length}</p>
+        <div class="list">
+          <div class="item"><strong>Schüler:innen</strong><div class="mono">${state.adminUsers.filter(u => u.role === 'student').length}</div></div>
+          <div class="item"><strong>Lehrpersonen</strong><div class="mono">${state.adminUsers.filter(u => u.role === 'teacher').length}</div></div>
+          <div class="item"><strong>PICTS</strong><div class="mono">${state.adminUsers.filter(u => u.role === 'picts').length}</div></div>
+          <div class="item"><strong>Super-Admin</strong><div class="mono">${state.adminUsers.filter(u => u.role === 'super_admin').length}</div></div>
+        </div>
+      </article>
+    </div>
+
+    <article class="card" style="margin-top:14px;">
+      <h2>Rollen setzen</h2>
+      <p class="sub">Rolle pro Account anpassen. Eigene Super-Admin-Rolle kannst du hier auch ändern.</p>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>E-Mail</th>
+            <th>UID</th>
+            <th>Rolle</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${state.adminUsers.map((user) => `
+            <tr>
+              <td>${esc(user.name || '-')}</td>
+              <td>${esc(user.email || '-')}</td>
+              <td class="mono">${esc(user.uid)}</td>
+              <td>
+                <select class="admin-role-select" data-uid="${esc(user.uid)}">
+                  <option value="student" ${user.role === 'student' ? 'selected' : ''}>Schüler:in</option>
+                  <option value="teacher" ${user.role === 'teacher' ? 'selected' : ''}>Lehrperson</option>
+                  <option value="picts" ${user.role === 'picts' ? 'selected' : ''}>PICTS</option>
+                  <option value="super_admin" ${user.role === 'super_admin' ? 'selected' : ''}>Super-Admin</option>
+                </select>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </article>
+  `;
+}
+
 function bindPageEvents() {
   if (PAGE === 'aufgaben') {
     const form = document.getElementById('taskForm');
@@ -830,6 +942,30 @@ function bindPageEvents() {
       });
     }
   }
+
+  if (PAGE === 'admin') {
+    const refreshBtn = document.getElementById('adminRefreshUsers');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', async () => {
+        await loadAdminUsers();
+        renderPage();
+      });
+    }
+
+    document.querySelectorAll('.admin-role-select').forEach((select) => {
+      select.addEventListener('change', async () => {
+        const uid = select.dataset.uid;
+        const role = select.value;
+        try {
+          await updateUserRole(uid, role);
+          setAuthMessage(`Rolle für ${uid} auf ${roleLabel(role)} gesetzt.`);
+        } catch (error) {
+          setAuthMessage(`Rollenwechsel fehlgeschlagen: ${error.message}`);
+        }
+        render();
+      });
+    });
+  }
 }
 
 function updateSelectedPromptBox() {
@@ -859,6 +995,7 @@ function renderPage() {
   if (PAGE === 'prompts') html = renderPrompts();
   if (PAGE === 'tracking') html = renderTracking();
   if (PAGE === 'export') html = renderExport();
+  if (PAGE === 'admin') html = renderAdmin();
 
   root.innerHTML = html;
   bindPageEvents();

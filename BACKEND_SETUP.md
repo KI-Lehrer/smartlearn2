@@ -1,4 +1,4 @@
-# SmartLearn Backend Setup (Firebase + Auth + Super-Admin)
+# SmartLearn Backend Setup (Firebase + Auth + Rollensteuerung)
 
 ## 1) Firebase aktivieren
 1. Firestore Database aktivieren.
@@ -24,9 +24,11 @@ window.SMARTLEARN_CONFIG = {
 };
 ```
 
-Alle E-Mails in `superAdminEmails` werden beim Login automatisch als Rolle `super_admin` gesetzt.
+Hinweis:
+- Selbstregistrierung ist in der App immer Rolle `student`.
+- Rollenwechsel erfolgt ausschließlich auf `admin.html` durch Super-Admin.
 
-## 3) Firestore-Regeln mit Super-Admin
+## 3) Firestore-Regeln (Rolle nur durch Super-Admin änderbar)
 
 ```txt
 rules_version = '2';
@@ -41,39 +43,48 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function myRole() {
+      return get(/databases/$(database)/documents/smartlearn_users/$(request.auth.uid)).data.role;
+    }
+
     function isSuperAdmin() {
-      return isSignedIn() &&
-        get(/databases/$(database)/documents/smartlearn_users/$(request.auth.uid)).data.role == "super_admin";
+      return isSignedIn() && myRole() == "super_admin";
     }
 
     match /smartlearn_users/{userId} {
-      allow create: if isSelf(userId);
+      // Erstes eigenes Profil darf nur als student erstellt werden.
+      allow create: if isSelf(userId)
+        && request.resource.data.role == "student";
+
       allow read: if isSelf(userId) || isSuperAdmin();
-      allow update: if isSelf(userId) || isSuperAdmin();
+
+      // User darf eigenes Profil aktualisieren, aber Rolle nicht verändern.
+      allow update: if (isSelf(userId)
+          && request.resource.data.role == resource.data.role)
+        || isSuperAdmin();
+
       allow delete: if isSuperAdmin();
     }
 
     match /smartlearn_tasks/{taskId} {
-      allow create: if isSignedIn() &&
-        (request.resource.data.owner_uid == request.auth.uid || isSuperAdmin());
+      allow create: if isSignedIn()
+        && (request.resource.data.owner_uid == request.auth.uid || isSuperAdmin());
 
-      allow read, update, delete: if isSignedIn() &&
-        (resource.data.owner_uid == request.auth.uid || isSuperAdmin());
+      allow read, update, delete: if isSignedIn()
+        && (resource.data.owner_uid == request.auth.uid || isSuperAdmin());
     }
   }
 }
 ```
 
-## 4) Rückgängig bei falschem Schüler-Login
-1. In der App auf `Abmelden` klicken.
-2. Firebase Console -> Authentication -> Users:
-   - falschen Schüler-User löschen (optional)
-3. Firestore -> `smartlearn_users`:
-   - Dokument des falschen Users löschen oder `role` anpassen.
+## 4) Versehentliche Schüler-Anmeldung rückgängig
+1. In der App auf `Abmelden`.
+2. Firebase -> Authentication -> Users: falschen Account löschen (optional).
+3. Firestore -> `smartlearn_users`: Profil löschen oder auf gewünschte Rolle setzen (als Super-Admin).
 
-## 5) Super-Admin nutzen
+## 5) Super-Admin aktivieren
 1. Eigene E-Mail in `superAdminEmails` eintragen.
-2. Änderungen deployen (git push).
+2. Deployen (`git push`).
 3. Ab- und wieder anmelden.
-4. In Firestore `smartlearn_users/<deine_uid>.role` wird auf `super_admin` gesetzt.
-5. Als Super-Admin siehst du alle Tasks.
+4. Danach erscheint `Admin` im Menü (`admin.html`).
+5. Dort Rollen für andere Nutzer setzen.
