@@ -1083,7 +1083,34 @@ function renderAdmin() {
 
 async function readImportRowsFromFile(file) {
   if (!file) return [];
-  if (!window.XLSX) throw new Error('XLSX-Library nicht geladen');
+  const lowerName = String(file.name || '').toLowerCase();
+  const isCsv = lowerName.endsWith('.csv');
+
+  if (isCsv) {
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(Boolean);
+    if (!lines.length) return [];
+
+    const headers = lines[0].split(',').map((h) => h.trim().toLowerCase());
+    const rows = [];
+    for (let i = 1; i < lines.length; i += 1) {
+      const cols = lines[i].split(',').map((c) => c.trim());
+      const row = {};
+      headers.forEach((h, idx) => {
+        row[h] = cols[idx] || '';
+      });
+      rows.push(row);
+    }
+
+    return rows.map((row) => ({
+      name: String(row.name || '').trim(),
+      mail: String(row.mail || row.email || '').trim().toLowerCase(),
+      passwort: String(row.passwort || row.password || '').trim()
+    })).filter((row) => row.name && row.mail && row.passwort);
+  }
+
+  await ensureXlsxLibrary();
+  if (!window.XLSX) throw new Error('XLSX-Library konnte nicht geladen werden');
 
   const buffer = await file.arrayBuffer();
   const workbook = window.XLSX.read(buffer, { type: 'array' });
@@ -1096,6 +1123,36 @@ async function readImportRowsFromFile(file) {
     mail: String(row.mail || row.email || row.Mail || row.Email || '').trim().toLowerCase(),
     passwort: String(row.passwort || row.password || row.Passwort || row.Password || '').trim()
   })).filter((row) => row.name && row.mail && row.passwort);
+}
+
+async function ensureXlsxLibrary() {
+  if (window.XLSX) return;
+
+  const urls = [
+    'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+    'https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js'
+  ];
+
+  for (const url of urls) {
+    await new Promise((resolve) => {
+      const existing = document.querySelector(`script[data-xlsx-src="${url}"]`);
+      if (existing) {
+        existing.addEventListener('load', resolve, { once: true });
+        existing.addEventListener('error', resolve, { once: true });
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = url;
+      script.async = true;
+      script.dataset.xlsxSrc = url;
+      script.onload = resolve;
+      script.onerror = resolve;
+      document.head.appendChild(script);
+    });
+
+    if (window.XLSX) return;
+  }
 }
 
 async function runStudentImport() {
