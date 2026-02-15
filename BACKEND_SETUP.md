@@ -88,3 +88,10 @@ service cloud.firestore {
 3. Ab- und wieder anmelden.
 4. Danach erscheint `Admin` im Menü (`admin.html`).
 5. Dort Rollen für andere Nutzer setzen.
+
+## 6) User löschen (Admin-Seite)
+- Auf `admin.html` kann Super-Admin einen User löschen.
+- Dabei löscht die App:
+  - `smartlearn_users/<uid>`
+  - alle `smartlearn_tasks` mit `owner_uid == uid`
+- Der Firebase-Auth-Account selbst bleibt bestehen und kann in Firebase Console unter `Authentication -> Users` gelöscht werden.

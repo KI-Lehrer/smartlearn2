@@ -364,6 +364,32 @@ async function updateUserRole(uid, role) {
   }
 }
 
+async function deleteUserData(uid) {
+  if (!state.backend.enabled || !state.backend.client || state.role !== 'super_admin') return;
+  if (!uid) return;
+
+  const db = state.backend.client;
+
+  // Delete all tasks owned by the target user in chunks.
+  while (true) {
+    const snap = await db
+      .collection('smartlearn_tasks')
+      .where('owner_uid', '==', uid)
+      .limit(250)
+      .get();
+
+    if (snap.empty) break;
+
+    const batch = db.batch();
+    snap.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+  }
+
+  await db.collection('smartlearn_users').doc(uid).delete();
+  await loadAdminUsers();
+  await loadTasks();
+}
+
 function renderHeader() {
   const mount = document.getElementById('app-header');
   if (!mount) return;
@@ -812,6 +838,7 @@ function renderAdmin() {
             <th>E-Mail</th>
             <th>UID</th>
             <th>Rolle</th>
+            <th>Aktion</th>
           </tr>
         </thead>
         <tbody>
@@ -828,10 +855,16 @@ function renderAdmin() {
                   <option value="super_admin" ${user.role === 'super_admin' ? 'selected' : ''}>Super-Admin</option>
                 </select>
               </td>
+              <td>
+                <button class="btn secondary admin-delete-user" data-uid="${esc(user.uid)}" data-email="${esc(user.email || '')}">
+                  Löschen
+                </button>
+              </td>
             </tr>
           `).join('')}
         </tbody>
       </table>
+      <p class="notice">Hinweis: Diese Aktion löscht smartlearn_users und alle smartlearn_tasks des Users. Den Auth-Account selbst löschst du in Firebase Authentication.</p>
     </article>
   `;
 }
@@ -961,6 +994,29 @@ function bindPageEvents() {
           setAuthMessage(`Rolle für ${uid} auf ${roleLabel(role)} gesetzt.`);
         } catch (error) {
           setAuthMessage(`Rollenwechsel fehlgeschlagen: ${error.message}`);
+        }
+        render();
+      });
+    });
+
+    document.querySelectorAll('.admin-delete-user').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const uid = btn.dataset.uid;
+        const email = btn.dataset.email || uid;
+        if (state.auth.user && uid === state.auth.user.uid) {
+          setAuthMessage('Eigenes Super-Admin-Profil kann hier nicht gelöscht werden.');
+          render();
+          return;
+        }
+
+        const ok = window.confirm(`User-Daten löschen für ${email}?\\n\\nDies entfernt Profil und alle Aufgaben dieses Users.`);
+        if (!ok) return;
+
+        try {
+          await deleteUserData(uid);
+          setAuthMessage(`User-Daten gelöscht: ${email}`);
+        } catch (error) {
+          setAuthMessage(`Löschen fehlgeschlagen: ${error.message}`);
         }
         render();
       });
