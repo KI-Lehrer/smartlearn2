@@ -76,7 +76,8 @@ const NAV_ITEMS = [
 const ALLOWED_BY_ROLE = {
   teacher: ['dashboard', 'aufgaben', 'prompts', 'tracking', 'export'],
   student: ['dashboard', 'aufgaben', 'prompts', 'tracking'],
-  picts: ['dashboard', 'prompts', 'tracking', 'export']
+  picts: ['dashboard', 'prompts', 'tracking', 'export'],
+  super_admin: ['dashboard', 'aufgaben', 'prompts', 'tracking', 'export']
 };
 
 function esc(value) {
@@ -112,7 +113,19 @@ function roleLabel(role) {
   if (role === 'teacher') return 'Lehrperson';
   if (role === 'student') return 'Schüler:in';
   if (role === 'picts') return 'PICTS';
+  if (role === 'super_admin') return 'Super-Admin';
   return role || 'Unbekannt';
+}
+
+function getSuperAdminEmails() {
+  const cfg = window.SMARTLEARN_CONFIG || {};
+  const emails = Array.isArray(cfg.superAdminEmails) ? cfg.superAdminEmails : [];
+  return emails.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
+}
+
+function isSuperAdminEmail(email) {
+  const normalized = String(email || '').trim().toLowerCase();
+  return !!normalized && getSuperAdminEmails().includes(normalized);
 }
 
 function setAuthMessage(message) {
@@ -156,6 +169,15 @@ async function applyAuthUser(user) {
       created_at_iso: new Date().toISOString()
     };
     await upsertUserProfile(user.uid, profile);
+  }
+
+  if (isSuperAdminEmail(user.email)) {
+    profile.role = 'super_admin';
+    await upsertUserProfile(user.uid, {
+      ...profile,
+      role: 'super_admin',
+      email: user.email || profile.email || ''
+    });
   }
 
   state.auth.profile = profile;
@@ -213,11 +235,10 @@ async function loadTasks() {
   }
 
   try {
-    const snapshot = await state.backend.client
-      .collection('smartlearn_tasks')
-      .where('owner_uid', '==', uid)
-      .limit(150)
-      .get();
+    const collection = state.backend.client.collection('smartlearn_tasks');
+    const snapshot = state.role === 'super_admin'
+      ? await collection.limit(300).get()
+      : await collection.where('owner_uid', '==', uid).limit(300).get();
 
     state.tasks = snapshot.docs.map((doc) => {
       const data = doc.data() || {};

@@ -1,4 +1,7 @@
 window.SMARTLEARN_CONFIG = {
+  superAdminEmails: [
+    "luescher.sascha@gmail.com"
+  ],
   firebase: {
     apiKey: "AIzaSyC7B9BD3hn2-DYYBQlu5uTpl_Nki8uicZY",
     authDomain: "smartlearn2-9bc3d.firebaseapp.com",
