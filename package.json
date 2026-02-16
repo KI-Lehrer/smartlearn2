@@ -1,0 +1,10 @@
+{
+  "name": "smartlearn-netlify",
+  "private": true,
+  "version": "1.0.0",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "firebase-admin": "^12.7.0",
+    "openai": "^4.86.1"
+  }
+}

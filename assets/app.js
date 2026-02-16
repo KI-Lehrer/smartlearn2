@@ -136,14 +136,16 @@ function isSuperAdminEmail(email) {
 function getFunctionsBaseUrl() {
   const cfg = window.SMARTLEARN_CONFIG || {};
   if (cfg.functionsBaseUrl) return String(cfg.functionsBaseUrl).trim().replace(/\/$/, '');
-  const projectId = cfg.firebase && cfg.firebase.projectId;
-  if (!projectId) return '';
-  return `https://us-central1-${projectId}.cloudfunctions.net`;
+  const host = String(window.location.hostname || '').toLowerCase();
+  if (host.endsWith('netlify.app') || host === 'localhost' || host === '127.0.0.1') {
+    return `${window.location.origin}/.netlify/functions`;
+  }
+  return '';
 }
 
 async function callCloudFunction(functionName, payload) {
   const baseUrl = getFunctionsBaseUrl();
-  if (!baseUrl) throw new Error('functionsBaseUrl nicht konfiguriert');
+  if (!baseUrl) throw new Error('functionsBaseUrl nicht konfiguriert (z.B. https://deine-site.netlify.app/.netlify/functions)');
   if (!state.backend.auth || !state.auth.user) throw new Error('Bitte zuerst anmelden');
 
   const token = await state.backend.auth.currentUser.getIdToken();

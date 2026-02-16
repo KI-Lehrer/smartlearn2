@@ -1,6 +1,8 @@
 const functions = require('firebase-functions');
 const admin = require('firebase-admin');
 const OpenAI = require('openai');
+const Anthropic = require('@anthropic-ai/sdk');
+require('dotenv').config();
 
 admin.initializeApp();
 
@@ -146,11 +148,36 @@ exports.generateFeedback = functions.https.onRequest(async (req, res) => {
     }
 
     let feedback = 'Gute Grundlage. Verbessere die Genauigkeit bei Fachbegriffen und ergänze ein konkretes Beispiel.';
+    let source = 'fallback';
 
-    const configured = functions.config && functions.config().openai && functions.config().openai.key;
-    const apiKey = process.env.OPENAI_API_KEY || configured;
-    if (apiKey) {
-      const client = new OpenAI({ apiKey });
+    const anthropicKeyCfg = functions.config && functions.config().anthropic && functions.config().anthropic.key;
+    const anthropicKey = process.env.ANTHROPIC_API_KEY || anthropicKeyCfg;
+    const openaiKeyCfg = functions.config && functions.config().openai && functions.config().openai.key;
+    const openaiKey = process.env.OPENAI_API_KEY || openaiKeyCfg;
+
+    if (anthropicKey) {
+      const anthropic = new Anthropic({ apiKey: anthropicKey });
+      const message = await anthropic.messages.create({
+        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
+        max_tokens: 220,
+        temperature: 0.2,
+        system: 'Du gibst kurzes, konstruktives Feedback für Schülerinnen und Schüler der Primarstufe. Maximal 80 Wörter.',
+        messages: [
+          {
+            role: 'user',
+            content: `Aufgaben-ID: ${taskId || '-'}\nAntwort:\n${answerText}`
+          }
+        ]
+      });
+      const text = Array.isArray(message.content)
+        ? message.content.filter((c) => c.type === 'text').map((c) => c.text).join('\n').trim()
+        : '';
+      if (text) {
+        feedback = text;
+        source = 'anthropic';
+      }
+    } else if (openaiKey) {
+      const client = new OpenAI({ apiKey: openaiKey });
       const completion = await client.responses.create({
         model: process.env.OPENAI_MODEL || 'gpt-4.1-mini',
         input: [
@@ -164,7 +191,11 @@ exports.generateFeedback = functions.https.onRequest(async (req, res) => {
           }
         ]
       });
-      feedback = (completion.output_text || '').trim() || feedback;
+      const text = (completion.output_text || '').trim();
+      if (text) {
+        feedback = text;
+        source = 'openai';
+      }
     }
 
     await admin.firestore().collection('ai_feedback_events').add({
@@ -173,7 +204,7 @@ exports.generateFeedback = functions.https.onRequest(async (req, res) => {
       answer_text: answerText,
       feedback,
       created_at_iso: new Date().toISOString(),
-      source: apiKey ? 'openai' : 'fallback'
+      source
     });
 
     return res.status(200).json({ ok: true, feedback });

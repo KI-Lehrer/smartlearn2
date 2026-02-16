@@ -11,6 +11,8 @@
     "lint": "echo 'no lint configured'"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "dotenv": "^16.4.7",
     "firebase-admin": "^12.7.0",
     "firebase-functions": "^4.9.0",
     "openai": "^4.86.1"
