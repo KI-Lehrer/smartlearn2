@@ -861,6 +861,27 @@ function renderStudentAssignmentOptions() {
   }).join('');
 }
 
+function renderImportPreviewMarkup() {
+  if (!state.importRows.length) {
+    return '<p class="notice">Noch keine Importdatei eingelesen.</p>';
+  }
+
+  return `
+    <table class="table">
+      <thead><tr><th>Name</th><th>E-Mail</th><th>Passwort</th></tr></thead>
+      <tbody>
+        ${state.importRows.slice(0, 20).map((row) => `
+          <tr>
+            <td>${esc(row.name || '')}</td>
+            <td>${esc(row.mail || '')}</td>
+            <td>${esc(String(row.passwort || '') ? '***' : '')}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
 function renderPrompts() {
   const poolTitle = state.role === 'picts' ? 'Schulhaus-Prompt-Pool' : 'Prompt-Bibliothek';
   const desc = state.role === 'picts'
@@ -1007,7 +1028,7 @@ function renderAdmin() {
       <div class="form-grid">
         <div class="full">
           <label>Datei (.xlsx, .xls, .csv)</label>
-          <input id="studentImportFile" type="file" accept=\".xlsx,.xls,.csv\" />
+          <input id="studentImportFile" type="file" accept=".xlsx,.xls,.csv" />
         </div>
         <div>
           <label>Klassen-ID</label>
@@ -1018,25 +1039,13 @@ function renderAdmin() {
           <div class="mono" id="studentImportCount">${state.importRows.length} Zeilen geladen</div>
         </div>
         <div class="full actions">
-          <button class="btn secondary" id="previewImportBtn">Datei lesen</button>
-          <button class="btn primary" id="runImportBtn">Import starten</button>
+          <button class="btn secondary" type="button" id="previewImportBtn">Datei lesen</button>
+          <button class="btn primary" type="button" id="runImportBtn">Import starten</button>
         </div>
       </div>
+      <p class="notice" id="importStatus">Bereit für Import.</p>
       <div id="importPreviewTable">
-        ${state.importRows.length ? `
-          <table class="table">
-            <thead><tr><th>Name</th><th>E-Mail</th><th>Passwort</th></tr></thead>
-            <tbody>
-              ${state.importRows.slice(0, 20).map((row) => `
-                <tr>
-                  <td>${esc(row.name || '')}</td>
-                  <td>${esc(row.mail || '')}</td>
-                  <td>${esc(String(row.passwort || '') ? '***' : '')}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        ` : '<p class="notice">Noch keine Importdatei eingelesen.</p>'}
+        ${renderImportPreviewMarkup()}
       </div>
     </article>
 
@@ -1320,6 +1329,10 @@ function bindPageEvents() {
   }
 
   if (PAGE === 'admin') {
+    const importStatusEl = document.getElementById('importStatus');
+    const importPreviewTableEl = document.getElementById('importPreviewTable');
+    const importCountEl = document.getElementById('studentImportCount');
+
     const refreshBtn = document.getElementById('adminRefreshUsers');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', async () => {
@@ -1370,31 +1383,45 @@ function bindPageEvents() {
       previewImportBtn.addEventListener('click', async () => {
         const fileInput = document.getElementById('studentImportFile');
         const file = fileInput && fileInput.files && fileInput.files[0];
+        if (importStatusEl) importStatusEl.textContent = 'Datei wird gelesen...';
         try {
           state.importRows = await readImportRowsFromFile(file);
-          setAuthMessage(`Import-Vorschau geladen: ${state.importRows.length} gültige Zeilen.`);
+          const msg = `Import-Vorschau geladen: ${state.importRows.length} gültige Zeilen.`;
+          setAuthMessage(msg);
+          if (importStatusEl) importStatusEl.textContent = msg;
         } catch (error) {
-          setAuthMessage(`Import-Datei konnte nicht gelesen werden: ${error.message}`);
+          const msg = `Import-Datei konnte nicht gelesen werden: ${error.message}`;
+          setAuthMessage(msg);
+          if (importStatusEl) importStatusEl.textContent = msg;
           state.importRows = [];
         }
-        render();
+        if (importCountEl) importCountEl.textContent = `${state.importRows.length} Zeilen geladen`;
+        if (importPreviewTableEl) importPreviewTableEl.innerHTML = renderImportPreviewMarkup();
+        renderHeader();
       });
     }
 
     const runImportBtn = document.getElementById('runImportBtn');
     if (runImportBtn) {
       runImportBtn.addEventListener('click', async () => {
+        if (importStatusEl) importStatusEl.textContent = 'Import läuft...';
         try {
           const result = await runStudentImport();
           const created = Number(result.createdCount || 0);
           const updated = Number(result.updatedCount || 0);
           const failed = Number(result.failedCount || 0);
-          setAuthMessage(`Import abgeschlossen. Neu: ${created}, Aktualisiert: ${updated}, Fehler: ${failed}.`);
+          const msg = `Import abgeschlossen. Neu: ${created}, Aktualisiert: ${updated}, Fehler: ${failed}.`;
+          setAuthMessage(msg);
+          if (importStatusEl) importStatusEl.textContent = msg;
           state.importRows = [];
         } catch (error) {
-          setAuthMessage(`Import fehlgeschlagen: ${error.message}`);
+          const msg = `Import fehlgeschlagen: ${error.message}`;
+          setAuthMessage(msg);
+          if (importStatusEl) importStatusEl.textContent = msg;
         }
-        render();
+        if (importCountEl) importCountEl.textContent = `${state.importRows.length} Zeilen geladen`;
+        if (importPreviewTableEl) importPreviewTableEl.innerHTML = renderImportPreviewMarkup();
+        renderHeader();
       });
     }
   }
