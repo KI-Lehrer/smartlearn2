@@ -1,7 +1,7 @@
 const PAGE = document.body.dataset.page;
 
 const state = {
-  role: localStorage.getItem('smartlearn_role') || 'teacher',
+  role: 'student',
   tasks: [],
   studentAssignments: [],
   adminUsers: [],
@@ -194,7 +194,7 @@ async function applyAuthUser(user) {
     state.auth.profile = null;
     state.adminUsers = [];
     state.studentAssignments = [];
-    state.role = localStorage.getItem('smartlearn_role') || 'teacher';
+    state.role = 'student';
     await loadTasks();
     render();
     return;
@@ -222,7 +222,6 @@ async function applyAuthUser(user) {
 
   state.auth.profile = profile;
   state.role = profile.role || 'student';
-  localStorage.setItem('smartlearn_role', state.role);
   await loadTasks();
   await loadStudentAssignments();
   if (state.role === 'super_admin') {
@@ -468,7 +467,6 @@ async function updateUserRole(uid, role) {
 
   if (state.auth.user && state.auth.user.uid === uid) {
     state.role = role;
-    localStorage.setItem('smartlearn_role', role);
     const profile = state.auth.profile || {};
     state.auth.profile = { ...profile, role };
     await loadTasks();
@@ -509,7 +507,7 @@ function renderHeader() {
   const mount = document.getElementById('app-header');
   if (!mount) return;
 
-  const allowed = ALLOWED_BY_ROLE[state.role] || ALLOWED_BY_ROLE.teacher;
+  const allowed = ALLOWED_BY_ROLE[state.role] || ALLOWED_BY_ROLE.student;
   const nav = NAV_ITEMS.filter(item => allowed.includes(item.id));
   const isLoggedIn = !!state.auth.user;
 
@@ -543,14 +541,6 @@ function renderHeader() {
       ${state.auth.message ? `<p class="notice">${esc(state.auth.message)}</p>` : ''}
     </header>
   `;
-
-  mount.querySelectorAll('.role-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      state.role = btn.dataset.role;
-      localStorage.setItem('smartlearn_role', state.role);
-      render();
-    });
-  });
 
   const logoutBtn = mount.querySelector('#authLogoutBtn');
   if (logoutBtn && state.backend.auth) {
@@ -1479,7 +1469,7 @@ function renderPage() {
 
 function guardPageByRole() {
   if (PAGE === 'demo') return;
-  const allowed = ALLOWED_BY_ROLE[state.role] || ALLOWED_BY_ROLE.teacher;
+  const allowed = ALLOWED_BY_ROLE[state.role] || ALLOWED_BY_ROLE.student;
   if (!allowed.includes(PAGE)) {
     location.href = 'index.html';
   }
@@ -1493,6 +1483,12 @@ function render() {
 
 async function initAuthListener() {
   if (!state.backend.auth) return false;
+
+  try {
+    await state.backend.auth.setPersistence(window.firebase.auth.Auth.Persistence.SESSION);
+  } catch (error) {
+    state.backend.error = error.message || 'Auth-Persistenz konnte nicht gesetzt werden';
+  }
 
   await new Promise((resolve) => {
     let firstEvent = true;

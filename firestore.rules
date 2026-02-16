@@ -6,63 +6,117 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function currentUid() {
+      return request.auth.uid;
+    }
+
     function isSelf(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+      return isSignedIn() && currentUid() == userId;
+    }
+
+    function requesterUserPath() {
+      return /databases/$(database)/documents/smartlearn_users/$(currentUid());
+    }
+
+    function requesterUserExists() {
+      return isSignedIn() && exists(requesterUserPath());
+    }
+
+    function requesterUserDoc() {
+      return get(requesterUserPath());
     }
 
     function myRole() {
-      return get(/databases/$(database)/documents/smartlearn_users/$(request.auth.uid)).data.role;
+      return requesterUserExists() ? requesterUserDoc().data.role : null;
     }
 
     function isSuperAdmin() {
-      return isSignedIn() && request.auth.token.email == "luescher.sascha@gmail.com";
+      return isSignedIn() && myRole() == "super_admin";
+    }
+
+    function isTeacher() {
+      return isSignedIn() && myRole() == "teacher";
+    }
+
+    function isPicts() {
+      return isSignedIn() && myRole() == "picts";
+    }
+
+    function isStudent() {
+      return isSignedIn() && myRole() == "student";
     }
 
     function isStaff() {
-      return isSignedIn() && (myRole() == "teacher" || myRole() == "picts" || myRole() == "super_admin");
+      return isTeacher() || isPicts() || isSuperAdmin();
+    }
+
+    function validUserDocCreate(userId) {
+      return request.resource.data.keys().hasOnly([
+          "name",
+          "email",
+          "role",
+          "created_at_iso",
+          "updated_at_iso"
+        ])
+        && request.resource.data.role == "student"
+        && request.resource.data.email == request.auth.token.email
+        && isSelf(userId);
+    }
+
+    function validUserDocSelfUpdate() {
+      return request.resource.data.keys().hasOnly([
+          "name",
+          "email",
+          "role",
+          "created_at_iso",
+          "updated_at_iso"
+        ])
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.email == resource.data.email;
     }
 
     match /smartlearn_users/{userId} {
-      allow create: if isSelf(userId) && request.resource.data.role == "student";
+      allow create: if validUserDocCreate(userId);
       allow read: if isSelf(userId) || isSuperAdmin();
-      allow update: if (isSelf(userId) && request.resource.data.role == resource.data.role) || isSuperAdmin();
+      allow update: if (isSelf(userId) && validUserDocSelfUpdate()) || isSuperAdmin();
       allow delete: if isSuperAdmin();
     }
 
     match /classes/{classId} {
       allow read: if isSignedIn();
-      allow create, update, delete: if isStaff() || isSuperAdmin();
+      allow create, update, delete: if isStaff();
     }
 
     match /enrollments/{enrollmentId} {
-      allow read: if isSelf(resource.data.user_uid) || isStaff() || isSuperAdmin();
-      allow create, update, delete: if isStaff() || isSuperAdmin();
+      allow read: if isSelf(resource.data.user_uid) || isStaff();
+      allow create, update, delete: if isStaff();
     }
 
     match /smartlearn_tasks/{taskId} {
-      allow create: if isSignedIn() && (request.resource.data.owner_uid == request.auth.uid || isStaff() || isSuperAdmin());
-      allow read, update, delete: if isSignedIn() && (resource.data.owner_uid == request.auth.uid || isStaff() || isSuperAdmin());
+      allow create: if isStaff() && request.resource.data.owner_uid == currentUid();
+      allow read, update, delete: if isSignedIn()
+        && (resource.data.owner_uid == currentUid() || isStaff());
     }
 
     match /task_assignments/{assignmentId} {
-      allow create, update, delete: if isStaff() || isSuperAdmin();
-      allow read: if isStaff() || isSuperAdmin()
+      allow create, update, delete: if isStaff();
+      allow read: if isStaff()
         || (isSignedIn() && resource.data.target_type == "user" && resource.data.target_id == request.auth.uid)
         || (isSignedIn() && resource.data.target_type == "class"
           && exists(/databases/$(database)/documents/enrollments/$(resource.data.target_id + "_" + request.auth.uid)));
     }
 
     match /submissions/{submissionId} {
-      allow create: if isSignedIn() && request.resource.data.student_uid == request.auth.uid;
+      allow create: if isStudent() && request.resource.data.student_uid == currentUid();
       allow read, update: if isSignedIn()
-        && (resource.data.student_uid == request.auth.uid || isStaff() || isSuperAdmin());
-      allow delete: if isStaff() || isSuperAdmin();
+        && (resource.data.student_uid == currentUid() || isStaff());
+      allow delete: if isStaff();
     }
 
     match /ai_feedback_events/{eventId} {
-      allow create: if isSignedIn();
-      allow read: if isSignedIn() && (resource.data.uid == request.auth.uid || isStaff() || isSuperAdmin());
-      allow update, delete: if isStaff() || isSuperAdmin();
+      allow create: if isSignedIn() && request.resource.data.uid == currentUid();
+      allow read: if isSignedIn() && (resource.data.uid == currentUid() || isStaff());
+      allow update, delete: if isStaff();
     }
   }
 }
