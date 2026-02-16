@@ -275,6 +275,76 @@ function readFileAsDataUrl(file) {
   });
 }
 
+function dataUrlBytes(dataUrl) {
+  const base64 = String(dataUrl || '').split(',')[1] || '';
+  const padding = (base64.match(/=*$/) || [''])[0].length;
+  return Math.floor((base64.length * 3) / 4) - padding;
+}
+
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Bild konnte nicht geladen werden.'));
+    };
+    img.src = url;
+  });
+}
+
+async function compressImageForFirestore(file) {
+  const targetBytes = 420 * 1024;
+  const maxSide = 1600;
+  const minQuality = 0.45;
+  const original = await readFileAsDataUrl(file);
+  if (dataUrlBytes(original) <= targetBytes) return original;
+
+  const img = await loadImageFromFile(file);
+  const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+  let width = Math.max(1, Math.round(img.width * scale));
+  let height = Math.max(1, Math.round(img.height * scale));
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Canvas nicht verfügbar.');
+
+  let quality = 0.82;
+  let best = '';
+
+  while (true) {
+    canvas.width = width;
+    canvas.height = height;
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    const candidate = canvas.toDataURL('image/jpeg', quality);
+    best = candidate;
+
+    if (dataUrlBytes(candidate) <= targetBytes) {
+      return candidate;
+    }
+
+    if (quality > minQuality) {
+      quality = Math.max(minQuality, quality - 0.1);
+      continue;
+    }
+
+    if (Math.max(width, height) <= 900) {
+      break;
+    }
+
+    width = Math.max(1, Math.round(width * 0.85));
+    height = Math.max(1, Math.round(height * 0.85));
+    quality = 0.78;
+  }
+
+  return best;
+}
+
 async function loadTasks() {
   const uid = state.auth.user && state.auth.user.uid;
 
@@ -1263,8 +1333,8 @@ function bindPageEvents() {
           return;
         }
 
-        if (file.size > 500 * 1024) {
-          setAuthMessage('Bild ist zu gross (max. 500 KB).');
+        if (file.size > 12 * 1024 * 1024) {
+          setAuthMessage('Bild ist zu gross (max. 12 MB).');
           studentPhotoInput.value = '';
           studentPhotoPreview.classList.add('hidden');
           studentPhotoPreview.innerHTML = '';
@@ -1277,6 +1347,7 @@ function bindPageEvents() {
         studentPhotoPreview.innerHTML = `
           <strong>Bild-Vorschau</strong>
           <div class="mono">${esc(file.name)} (${Math.round(file.size / 1024)} KB)</div>
+          <div class="mono">Hinweis: Bild wird beim Speichern automatisch komprimiert.</div>
           <img src="${imageUrl}" alt="Vorschau" style="margin-top:8px;max-width:100%;height:auto;border-radius:8px;">
         `;
       });
@@ -1304,9 +1375,9 @@ function bindPageEvents() {
 
         if (photoFile) {
           try {
-            photoDataUrl = await readFileAsDataUrl(photoFile);
+            photoDataUrl = await compressImageForFirestore(photoFile);
             photoName = String(photoFile.name || '');
-            photoType = String(photoFile.type || '');
+            photoType = 'image/jpeg';
           } catch (error) {
             setAuthMessage(`Bild konnte nicht gelesen werden: ${error.message}`);
             renderHeader();
