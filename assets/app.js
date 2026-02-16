@@ -1127,11 +1127,19 @@ async function readImportRowsFromFile(file) {
   const sheet = workbook.Sheets[firstSheetName];
   const rows = window.XLSX.utils.sheet_to_json(sheet, { defval: '' });
 
-  return rows.map((row) => ({
-    name: String(row.name || row.Name || '').trim(),
-    mail: String(row.mail || row.email || row.Mail || row.Email || '').trim().toLowerCase(),
-    passwort: String(row.passwort || row.password || row.Passwort || row.Password || '').trim()
-  })).filter((row) => row.name && row.mail && row.passwort);
+  return rows.map((row) => {
+    const normalized = {};
+    Object.entries(row || {}).forEach(([key, value]) => {
+      const k = String(key || '').trim().toLowerCase();
+      normalized[k] = value;
+    });
+
+    return {
+      name: String(normalized.name || '').trim(),
+      mail: String(normalized.mail || normalized.email || '').trim().toLowerCase(),
+      passwort: String(normalized.passwort || normalized.password || '').trim()
+    };
+  }).filter((row) => row.name && row.mail && row.passwort);
 }
 
 async function ensureXlsxLibrary() {
