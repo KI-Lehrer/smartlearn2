@@ -266,6 +266,15 @@ function normalizeDate(value) {
   return new Date(value).toISOString();
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Bild konnte nicht gelesen werden.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function loadTasks() {
   const uid = state.auth.user && state.auth.user.uid;
 
@@ -735,6 +744,9 @@ function renderAufgaben() {
           </select>
           <label style="margin-top:10px;">Deine Antwort</label>
           <textarea id="studentAnswer" placeholder="Schreibe hier deine Lösung..."></textarea>
+          <label style="margin-top:10px;">Foto hochladen (optional)</label>
+          <input id="studentPhoto" type="file" accept="image/*">
+          <div id="studentPhotoPreview" class="item hidden" style="margin-top:10px;"></div>
           <div class="actions">
             <button class="btn primary" id="getFeedbackBtn">KI-Feedback erhalten</button>
             <button class="btn secondary" id="saveSubmissionBtn">Abgabe speichern</button>
@@ -1231,27 +1243,98 @@ function bindPageEvents() {
       });
     }
 
+    const studentPhotoInput = document.getElementById('studentPhoto');
+    const studentPhotoPreview = document.getElementById('studentPhotoPreview');
+    if (studentPhotoInput && studentPhotoPreview) {
+      studentPhotoInput.addEventListener('change', async () => {
+        const file = studentPhotoInput.files && studentPhotoInput.files[0];
+        if (!file) {
+          studentPhotoPreview.classList.add('hidden');
+          studentPhotoPreview.innerHTML = '';
+          return;
+        }
+
+        if (!String(file.type || '').startsWith('image/')) {
+          setAuthMessage('Bitte nur Bilddateien hochladen.');
+          studentPhotoInput.value = '';
+          studentPhotoPreview.classList.add('hidden');
+          studentPhotoPreview.innerHTML = '';
+          renderHeader();
+          return;
+        }
+
+        if (file.size > 500 * 1024) {
+          setAuthMessage('Bild ist zu gross (max. 500 KB).');
+          studentPhotoInput.value = '';
+          studentPhotoPreview.classList.add('hidden');
+          studentPhotoPreview.innerHTML = '';
+          renderHeader();
+          return;
+        }
+
+        const imageUrl = URL.createObjectURL(file);
+        studentPhotoPreview.classList.remove('hidden');
+        studentPhotoPreview.innerHTML = `
+          <strong>Bild-Vorschau</strong>
+          <div class="mono">${esc(file.name)} (${Math.round(file.size / 1024)} KB)</div>
+          <img src="${imageUrl}" alt="Vorschau" style="margin-top:8px;max-width:100%;height:auto;border-radius:8px;">
+        `;
+      });
+    }
+
     const saveSubmissionBtn = document.getElementById('saveSubmissionBtn');
     if (saveSubmissionBtn) {
       saveSubmissionBtn.addEventListener('click', async () => {
         if (!state.backend.enabled || !state.auth.user) return;
         const answerText = String(document.getElementById('studentAnswer').value || '').trim();
         const taskId = String(document.getElementById('studentTask').value || '').trim();
-        if (!answerText || !taskId) return;
+        const photoInput = document.getElementById('studentPhoto');
+        const photoFile = photoInput && photoInput.files ? photoInput.files[0] : null;
+        if (!taskId) return;
+        if (!answerText && !photoFile) {
+          setAuthMessage('Bitte Text oder ein Foto für die Abgabe erfassen.');
+          renderHeader();
+          return;
+        }
 
         const assignment = state.studentAssignments.find((a) => (a.task_id || a.id) === taskId);
+        let photoDataUrl = '';
+        let photoName = '';
+        let photoType = '';
+
+        if (photoFile) {
+          try {
+            photoDataUrl = await readFileAsDataUrl(photoFile);
+            photoName = String(photoFile.name || '');
+            photoType = String(photoFile.type || '');
+          } catch (error) {
+            setAuthMessage(`Bild konnte nicht gelesen werden: ${error.message}`);
+            renderHeader();
+            return;
+          }
+        }
+
         const submission = {
           task_id: taskId,
           assignment_id: assignment ? assignment.id : '',
           student_uid: state.auth.user.uid,
           answer_text: answerText,
+          photo_data_url: photoDataUrl,
+          photo_name: photoName,
+          photo_type: photoType,
           created_at_iso: new Date().toISOString(),
           created_at: window.firebase.firestore.FieldValue.serverTimestamp()
         };
 
         try {
           await state.backend.client.collection('submissions').add(submission);
-          setAuthMessage('Abgabe gespeichert.');
+          setAuthMessage(photoDataUrl ? 'Abgabe mit Foto gespeichert.' : 'Abgabe gespeichert.');
+          if (photoInput) photoInput.value = '';
+          const photoPreview = document.getElementById('studentPhotoPreview');
+          if (photoPreview) {
+            photoPreview.classList.add('hidden');
+            photoPreview.innerHTML = '';
+          }
           renderHeader();
         } catch (error) {
           setAuthMessage(`Abgabe konnte nicht gespeichert werden: ${error.message}`);
