@@ -5,11 +5,12 @@ const teacherPassword = process.env.E2E_TEACHER_PASSWORD || '';
 const studentEmail = process.env.E2E_STUDENT_EMAIL || '';
 const studentPassword = process.env.E2E_STUDENT_PASSWORD || '';
 const studentTaskName = process.env.E2E_STUDENT_TASK_TEXT || 'E2E Text Aufgabe';
+const baseUrl = process.env.E2E_BASE_URL || 'https://lernsmart.vercel.app';
 
 const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 async function openStudentTask(page: import('@playwright/test').Page, taskTitle: string) {
-  await page.goto('/student', { waitUntil: 'networkidle' });
+  await page.goto(`${baseUrl}/student`, { waitUntil: 'networkidle' });
 
   if (await page.getByPlaceholder('deine@email.ch').isVisible().catch(() => false)) {
     await page.getByPlaceholder('deine@email.ch').fill(studentEmail);
@@ -46,7 +47,7 @@ test('Student flow: login, QR dialog, submit', async ({ page }) => {
 
 test('Teacher flow: login and workload filters visible', async ({ page }) => {
   test.skip(!teacherEmail || !teacherPassword, 'Set E2E_TEACHER_EMAIL and E2E_TEACHER_PASSWORD');
-  await page.goto('/login', { waitUntil: 'networkidle' });
+  await page.goto(`${baseUrl}/login`, { waitUntil: 'networkidle' });
 
   await page.getByRole('button', { name: 'Als Lehrperson anmelden' }).click();
   await page.getByLabel('E-Mail').fill(teacherEmail);

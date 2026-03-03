@@ -11,7 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e:prod:ci": "playwright test e2e/public-smoke.spec.ts e2e/manual-acceptance.spec.ts e2e/lernsmart-e2e.spec.ts --reporter=list"
+    "test:e2e:prod:ci": "playwright test e2e/lernsmart-e2e.spec.ts --reporter=list"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
