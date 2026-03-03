@@ -1,0 +1,83 @@
+name: E2E Production CI
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 1 * * *"
+
+concurrency:
+  group: e2e-prod-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-prod:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: lernsmart-main
+    env:
+      E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+      E2E_TEACHER_EMAIL: ${{ secrets.E2E_TEACHER_EMAIL }}
+      E2E_TEACHER_PASSWORD: ${{ secrets.E2E_TEACHER_PASSWORD }}
+      E2E_STUDENT_EMAIL: ${{ secrets.E2E_STUDENT_EMAIL }}
+      E2E_STUDENT_PASSWORD: ${{ secrets.E2E_STUDENT_PASSWORD }}
+      E2E_STUDENT_TASK_TEXT: ${{ secrets.E2E_STUDENT_TASK_TEXT }}
+      E2E_STUDENT_TASK_PHOTO: ${{ secrets.E2E_STUDENT_TASK_PHOTO }}
+      E2E_STUDENT_TASK_PDF: ${{ secrets.E2E_STUDENT_TASK_PDF }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: lernsmart-main/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          for key in \
+            E2E_TEACHER_EMAIL \
+            E2E_TEACHER_PASSWORD \
+            E2E_STUDENT_EMAIL \
+            E2E_STUDENT_PASSWORD
+          do
+            if [ -z "${!key:-}" ]; then
+              echo "::error title=Missing secret::$key is not set"
+              missing=1
+            fi
+          done
+
+          if [ -z "${E2E_BASE_URL:-}" ]; then
+            echo "E2E_BASE_URL not set, falling back to https://lernsmart.vercel.app"
+            echo "E2E_BASE_URL=https://lernsmart.vercel.app" >> "$GITHUB_ENV"
+          fi
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Run production E2E suite
+        run: npm run test:e2e:prod:ci
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: |
+            lernsmart-main/test-results
+            lernsmart-main/playwright-report
+          if-no-files-found: ignore
